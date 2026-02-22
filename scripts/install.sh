@@ -47,6 +47,11 @@ THEMEBLOCK
   echo "Initialized theme accents -> ~/.config/boo/theme.zsh"
 fi
 
+if [[ ! -f "$HOME/.config/boo/prompt" ]]; then
+  printf 'native\n' > "$HOME/.config/boo/prompt"
+  echo "Initialized prompt backend -> ~/.config/boo/prompt (native)"
+fi
+
 backup_file "$HOME/.local/bin/boo"
 cp "$REPO_DIR/bin/boo" "$HOME/.local/bin/boo"
 chmod +x "$HOME/.local/bin/boo"

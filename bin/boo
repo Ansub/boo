@@ -4,12 +4,14 @@ set -euo pipefail
 MODE_FILE="${HOME}/.config/boo/mode.zsh"
 THEME_FILE="${HOME}/.config/boo/theme"
 THEME_ENV_FILE="${HOME}/.config/boo/theme.zsh"
+PROMPT_FILE="${HOME}/.config/boo/prompt"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
 OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
+DEFAULT_PROMPT_BACKEND="native"
 UNAME_S="$(uname -s)"
 UNSAFE_RELOAD_REASON=""
 
@@ -21,6 +23,7 @@ Boo CLI
 
 Usage:
   boo mode [full|public]
+  boo prompt [show|list|set <native|omp>|native|omp]
   boo theme [list|set <name>|<name>]
   boo opacity [value|glass|solid]
   boo reload [--unsafe]
@@ -29,10 +32,11 @@ Usage:
 
 Commands:
   mode       Show or set startup panel mode.
+  prompt     Show or set shell prompt backend.
   theme      List or apply full terminal/prompt presets.
   opacity    Show or set Ghostty background opacity.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
-  status     Print current mode/theme/opacity.
+  status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
 EOF
 }
@@ -77,6 +81,38 @@ write_theme_file() {
   local theme="$1"
   mkdir -p "$(dirname "$THEME_FILE")"
   printf '%s\n' "$theme" > "$THEME_FILE"
+}
+
+read_prompt_backend() {
+  local backend
+  if [[ -f "$PROMPT_FILE" ]]; then
+    backend="$(tr -d '[:space:]' < "$PROMPT_FILE" | tr '[:upper:]' '[:lower:]')"
+    case "$backend" in
+      native|omp)
+        printf '%s\n' "$backend"
+        return
+        ;;
+      *)
+        ;;
+    esac
+  fi
+  printf '%s\n' "$DEFAULT_PROMPT_BACKEND"
+}
+
+write_prompt_backend() {
+  local backend="$1"
+  mkdir -p "$(dirname "$PROMPT_FILE")"
+  printf '%s\n' "$backend" > "$PROMPT_FILE"
+}
+
+effective_prompt_backend() {
+  local configured
+  configured="$(read_prompt_backend)"
+  if [[ "$configured" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
+    printf 'native\n'
+    return
+  fi
+  printf '%s\n' "$configured"
 }
 
 theme_accent_color() {
@@ -706,6 +742,66 @@ cmd_mode() {
   esac
 }
 
+cmd_prompt() {
+  local action="${1:-}"
+  local backend="${2:-}"
+  local configured effective
+
+  case "$action" in
+    ''|show|status)
+      configured="$(read_prompt_backend)"
+      effective="$(effective_prompt_backend)"
+      printf 'Prompt backend (configured): %s\n' "$configured"
+      printf 'Prompt backend (active): %s\n' "$effective"
+      if [[ "$configured" == "omp" && "$effective" == "native" ]]; then
+        printf 'oh-my-posh is missing; Boo is using native prompt fallback.\n'
+      fi
+      printf 'Usage: boo prompt [show|list|set <native|omp>|native|omp]\n'
+      ;;
+    list)
+      cat <<'EOF'
+Available prompt backends:
+  native  - Built-in zsh prompt (no external dependency)
+  omp     - oh-my-posh prompt engine
+EOF
+      ;;
+    set)
+      if [[ -z "$backend" ]]; then
+        printf 'Usage: boo prompt set <native|omp>\n' >&2
+        exit 1
+      fi
+      case "$backend" in
+        native|omp)
+          write_prompt_backend "$backend"
+          printf 'Boo prompt backend set to: %s\n' "$backend"
+          if [[ "$backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
+            printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
+          fi
+          printf 'Apply now: source ~/.zshrc\n'
+          ;;
+        *)
+          printf 'Invalid prompt backend: %s\n' "$backend" >&2
+          printf 'Use: native, omp\n' >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    native|omp)
+      write_prompt_backend "$action"
+      printf 'Boo prompt backend set to: %s\n' "$action"
+      if [[ "$action" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
+        printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
+      fi
+      printf 'Apply now: source ~/.zshrc\n'
+      ;;
+    *)
+      printf 'Invalid prompt command: %s\n' "$action" >&2
+      printf 'Usage: boo prompt [show|list|set <native|omp>|native|omp]\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
 cmd_theme() {
   local action="${1:-}"
   local theme="${2:-}"
@@ -779,6 +875,8 @@ cmd_status() {
   printf 'mode: %s\n' "$mode"
   printf 'theme: %s\n' "$theme"
   printf 'accent: %s\n' "$accent"
+  printf 'prompt_backend: %s\n' "$(read_prompt_backend)"
+  printf 'prompt_backend_effective: %s\n' "$(effective_prompt_backend)"
   printf 'opacity: %s\n' "$(current_opacity)"
   printf 'mode_file: %s\n' "$MODE_FILE"
   if [[ -f "$MODE_FILE" ]]; then
@@ -808,6 +906,10 @@ case "$subcommand" in
   theme)
     shift || true
     cmd_theme "${1:-}" "${2:-}"
+    ;;
+  prompt)
+    shift || true
+    cmd_prompt "${1:-}" "${2:-}"
     ;;
   obsidian|graphite|lunar|crimson|matrix)
     cmd_theme "$subcommand"

@@ -2,11 +2,12 @@
 
 <img width="2250" height="1026" alt="CleanShot 2026-02-22 at 21 26 28@2x" src="https://github.com/user-attachments/assets/e23277cd-2b2f-4e7a-94f4-7b925e4b34bb" />
 
-Boo is a polished Ghostty + Zsh + Oh My Posh setup inspired by Obsidian-like colors.
+Boo is a polished Ghostty + Zsh setup inspired by Obsidian-like colors.
 
 It includes:
 - Ghostty visual config (glass look, black background, tuned text/cursor)
-- Boo Oh My Posh themes (`obsidian`, `graphite`, `lunar`)
+- Dual prompt backends: native zsh (default) and optional `oh-my-posh`
+- Boo prompt presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`)
 - Neofetch-style startup dashboard for Ghostty
 - Theme-aware command/builtin syntax highlight accents for zsh
 
@@ -15,7 +16,7 @@ It includes:
 - macOS (tested)
 - Ghostty
 - `zsh`
-- [oh-my-posh](https://ohmyposh.dev/)
+- [oh-my-posh](https://ohmyposh.dev/) (optional)
 - Nerd Font in terminal (recommended)
 
 ## Quick Install
@@ -39,6 +40,9 @@ boo matrix         # shorthand
 boo mode full
 boo mode public
 boo mode
+boo prompt
+boo prompt set native
+boo prompt set omp
 boo theme list
 boo theme graphite
 boo theme crimson
@@ -52,6 +56,8 @@ boo status
 
 - `full`: shows `user@host`, kernel, model, and load.
 - `public`: hides identifying machine details for screenshots.
+- `boo prompt`: shows configured and active prompt backend.
+- `boo prompt set <native|omp>`: switches prompt engine (`native` is default).
 - `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`).
 - `boo theme <name>`: applies terminal colors + prompt palette + shell accent colors.
 - `boo opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
@@ -59,12 +65,17 @@ boo status
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `boo mode` prints current mode.
-- `boo status` prints mode, theme, opacity, and active config files.
+- `boo status` prints mode, theme, prompt backend, opacity, and active config files.
 
-Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`.
+Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, and prompt backend in `~/.config/boo/prompt`.
 Theme/opacity commands auto-run `boo reload` after writing config.
 Theme accent state is stored in `~/.config/boo/theme.zsh`.
-When sourced via `shell/boo.zsh`, mode changes sync into the current shell session immediately.
+When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
+
+Prompt backend behavior:
+- `native`: zero dependency zsh prompt.
+- `omp`: uses `oh-my-posh` when installed.
+- If `omp` is configured but `oh-my-posh` is missing, Boo falls back to `native`.
 
 Theme intent:
 - `obsidian`: original Boo look with purple accents.
@@ -99,6 +110,7 @@ If reload is not working:
 - Installer creates timestamped backups of replaced files.
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/boo/boo.zsh`.
 - Helper command `boo-mode` forwards to `boo mode`.
+- Helper command `boo-prompt` forwards to `boo prompt`.
 - To skip auto-reload during scripting, run commands with `BOO_NO_AUTO_APPLY=1`.
 - On macOS, Ghostty only applies `background-opacity` after a full app restart.
 - `reload --unsafe` may reset active terminals/sessions depending on Ghostty state.
