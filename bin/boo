@@ -23,6 +23,7 @@ Usage:
   boo mode [full|public]
   boo theme [list|set <name>|<name>]
   boo opacity [value|glass|solid]
+  boo preview [<theme>|all]
   boo reload [--unsafe]
   boo status
   boo help
@@ -31,6 +32,7 @@ Commands:
   mode       Show or set startup panel mode.
   theme      List or apply full terminal/prompt presets.
   opacity    Show or set Ghostty background opacity.
+  preview    Preview one theme or all themes as ANSI true-color swatches.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/opacity.
   help       Show this help message.
@@ -101,6 +103,105 @@ theme_panel_rgb() {
     matrix) printf '57;255;20\n' ;;
     *) printf '168;130;255\n' ;;
   esac
+}
+
+theme_core_colors() {
+  local theme="$1"
+  case "$theme" in
+    obsidian)
+      cat <<'EOF'
+bg=#0b0f0b
+fg=#d8dde5
+accent=#a882ff
+cursor=#e8ecf2
+selection=#262e38
+EOF
+      ;;
+    graphite)
+      cat <<'EOF'
+bg=#0f1115
+fg=#e6ebf2
+accent=#b7a2ff
+cursor=#f2f5fa
+selection=#323a47
+EOF
+      ;;
+    lunar)
+      cat <<'EOF'
+bg=#0a0f18
+fg=#d9e2f2
+accent=#7cc6ff
+cursor=#f2f6ff
+selection=#243247
+EOF
+      ;;
+    crimson)
+      cat <<'EOF'
+bg=#120606
+fg=#ffe4ea
+accent=#ff4f7a
+cursor=#fff3f6
+selection=#3a121a
+EOF
+      ;;
+    matrix)
+      cat <<'EOF'
+bg=#030803
+fg=#caffd0
+accent=#39ff14
+cursor=#eaffef
+selection=#103018
+EOF
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+hex_to_rgb() {
+  local hex="${1#\#}"
+  if [[ ! "$hex" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+    return 1
+  fi
+  printf '%d;%d;%d\n' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
+}
+
+print_color_swatch_line() {
+  local label="$1"
+  local hex="$2"
+  local rgb
+  rgb="$(hex_to_rgb "$hex")" || return 1
+
+  printf '  %-9s ' "$label"
+  printf '\033[48;2;%sm████\033[0m ' "$rgb"
+  printf '\033[38;2;%sm%s\033[0m\n' "$rgb" "$hex"
+}
+
+print_theme_preview() {
+  local theme="$1"
+  local line key value
+
+  printf '%s\n' "$theme"
+  while IFS= read -r line; do
+    key="${line%%=*}"
+    value="${line#*=}"
+    print_color_swatch_line "$key" "$value"
+  done < <(theme_core_colors "$theme")
+  printf '  Apply? boo theme %s\n' "$theme"
+}
+
+print_preview_all_row() {
+  local theme="$1"
+  local line value rgb
+
+  printf '%-10s ' "$theme"
+  while IFS= read -r line; do
+    value="${line#*=}"
+    rgb="$(hex_to_rgb "$value")" || return 1
+    printf '\033[48;2;%sm████\033[0m ' "$rgb"
+  done < <(theme_core_colors "$theme")
+  printf 'boo theme %s\n' "$theme"
 }
 
 write_theme_env_file() {
@@ -769,6 +870,32 @@ cmd_opacity() {
   esac
 }
 
+cmd_preview() {
+  local arg="${1:-}"
+  local themes=(obsidian graphite lunar crimson matrix)
+  local theme
+
+  case "$arg" in
+    '' )
+      printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all>\n'
+      ;;
+    all)
+      printf 'Legend: bg fg accent cursor selection\n\n'
+      for theme in "${themes[@]}"; do
+        print_preview_all_row "$theme"
+      done
+      ;;
+    obsidian|graphite|lunar|crimson|matrix)
+      print_theme_preview "$arg"
+      ;;
+    *)
+      printf 'Invalid preview target: %s\n' "$arg" >&2
+      printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all>\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
 cmd_status() {
   local mode
   mode="$(read_mode)"
@@ -819,6 +946,10 @@ case "$subcommand" in
   reload)
     shift || true
     cmd_reload "${1:-}"
+    ;;
+  preview)
+    shift || true
+    cmd_preview "${1:-}"
     ;;
   status)
     cmd_status
