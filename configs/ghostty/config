@@ -1,0 +1,50 @@
+# Font
+font-family = JetBrainsMono Nerd Font
+font-size = 14
+
+# Theme
+theme = Phala Green Dark
+
+# Text colors (neutral gray)
+foreground = #d8dde5
+cursor-color = #e8ecf2
+cursor-text = #000000
+selection-background = #262e38
+selection-foreground = #f5f7fb
+palette = 0=#0b0f0b
+palette = 1=#7a3b3b
+palette = 2=#6fb56f
+palette = 3=#a9a062
+palette = 4=#5f7da3
+palette = 5=#8b76a8
+palette = 6=#5ea39a
+palette = 7=#a8bfa8
+palette = 8=#2a342a
+palette = 9=#b35757
+palette = 10=#8fdb8f
+palette = 11=#d1c97b
+palette = 12=#7ea4d1
+palette = 13=#ac93cb
+palette = 14=#7dc7be
+palette = 15=#d9ead9
+
+# Cursor
+cursor-style = bar
+cursor-style-blink = true
+cursor-opacity = 0.9
+
+# Window
+background-opacity = 0.92
+background-blur = true
+window-padding-x = 14
+window-padding-y = 10
+window-padding-balance = true
+window-padding-color = extend
+unfocused-split-opacity = 0.88
+window-decoration = true
+window-theme = dark
+macos-titlebar-style = tabs
+
+# Misc
+mouse-hide-while-typing = true
+shell-integration = zsh
