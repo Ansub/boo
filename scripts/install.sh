@@ -12,7 +12,7 @@ backup_file() {
   fi
 }
 
-mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/obsighost" "$HOME/.local/bin"
+mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/boo" "$HOME/.local/bin"
 
 backup_file "$HOME/.config/ghostty/config"
 cp "$REPO_DIR/configs/ghostty/config" "$HOME/.config/ghostty/config"
@@ -27,30 +27,30 @@ if [[ -f "$MAC_GHOSTTY" ]]; then
   echo "Installed Ghostty config -> $MAC_GHOSTTY"
 fi
 
-backup_file "$HOME/.config/ohmyposh/obsighost.omp.json"
-cp "$REPO_DIR/configs/ohmyposh/presets/obsidian.omp.json" "$HOME/.config/ohmyposh/obsighost.omp.json"
-echo "Installed prompt theme -> ~/.config/ohmyposh/obsighost.omp.json"
+backup_file "$HOME/.config/ohmyposh/boo.omp.json"
+cp "$REPO_DIR/configs/ohmyposh/presets/obsidian.omp.json" "$HOME/.config/ohmyposh/boo.omp.json"
+echo "Installed prompt theme -> ~/.config/ohmyposh/boo.omp.json"
 
-mkdir -p "$HOME/.config/obsighost/ohmyposh"
-cp "$REPO_DIR"/configs/ohmyposh/presets/*.omp.json "$HOME/.config/obsighost/ohmyposh/"
-echo "Installed prompt presets -> ~/.config/obsighost/ohmyposh/"
+mkdir -p "$HOME/.config/boo/ohmyposh"
+cp "$REPO_DIR"/configs/ohmyposh/presets/*.omp.json "$HOME/.config/boo/ohmyposh/"
+echo "Installed prompt presets -> ~/.config/boo/ohmyposh/"
 
-cp "$REPO_DIR/shell/obsighost.zsh" "$HOME/.config/obsighost/obsighost.zsh"
-echo "Installed shell snippet -> ~/.config/obsighost/obsighost.zsh"
+cp "$REPO_DIR/shell/boo.zsh" "$HOME/.config/boo/boo.zsh"
+echo "Installed shell snippet -> ~/.config/boo/boo.zsh"
 
-if [[ ! -f "$HOME/.config/obsighost/theme.zsh" ]]; then
-  cat > "$HOME/.config/obsighost/theme.zsh" <<'THEMEBLOCK'
-export OBSIGHOST_THEME="obsidian"
-export OBSIGHOST_ACCENT_COLOR="#a882ff"
-export OBSIGHOST_PANEL_COLOR_RGB="168;130;255"
+if [[ ! -f "$HOME/.config/boo/theme.zsh" ]]; then
+  cat > "$HOME/.config/boo/theme.zsh" <<'THEMEBLOCK'
+export BOO_THEME="obsidian"
+export BOO_ACCENT_COLOR="#a882ff"
+export BOO_PANEL_COLOR_RGB="168;130;255"
 THEMEBLOCK
-  echo "Initialized theme accents -> ~/.config/obsighost/theme.zsh"
+  echo "Initialized theme accents -> ~/.config/boo/theme.zsh"
 fi
 
-backup_file "$HOME/.local/bin/obsighost"
-cp "$REPO_DIR/bin/obsighost" "$HOME/.local/bin/obsighost"
-chmod +x "$HOME/.local/bin/obsighost"
-echo "Installed CLI -> ~/.local/bin/obsighost"
+backup_file "$HOME/.local/bin/boo"
+cp "$REPO_DIR/bin/boo" "$HOME/.local/bin/boo"
+chmod +x "$HOME/.local/bin/boo"
+echo "Installed CLI -> ~/.local/bin/boo"
 
 if [[ ! -f "$HOME/.zshrc" ]]; then
   touch "$HOME/.zshrc"
@@ -64,21 +64,21 @@ PATHBLOCK
   echo "Added ~/.local/bin to PATH in ~/.zshrc"
 fi
 
-START_MARK="# >>> ObsiGhost >>>"
-END_MARK="# <<< ObsiGhost <<<"
+START_MARK="# >>> Boo >>>"
+END_MARK="# <<< Boo <<<"
 
 if ! grep -qF "$START_MARK" "$HOME/.zshrc"; then
   cat >> "$HOME/.zshrc" <<'ZSHBLOCK'
 
-# >>> ObsiGhost >>>
-if [[ -f "$HOME/.config/obsighost/obsighost.zsh" ]]; then
-  source "$HOME/.config/obsighost/obsighost.zsh"
+# >>> Boo >>>
+if [[ -f "$HOME/.config/boo/boo.zsh" ]]; then
+  source "$HOME/.config/boo/boo.zsh"
 fi
-# <<< ObsiGhost <<<
+# <<< Boo <<<
 ZSHBLOCK
-  echo "Added ObsiGhost source block to ~/.zshrc"
+  echo "Added Boo source block to ~/.zshrc"
 else
-  echo "ObsiGhost block already exists in ~/.zshrc (skipped append)."
+  echo "Boo block already exists in ~/.zshrc (skipped append)."
 fi
 
 echo

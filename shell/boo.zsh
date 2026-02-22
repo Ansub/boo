@@ -1,24 +1,24 @@
-# ObsiGhost shell integration for zsh.
+# Boo shell integration for zsh.
 
-if [[ -z "${OBSIGHOST_OMP_INIT_DONE:-}" ]]; then
-  export OBSIGHOST_OMP_INIT_DONE=1
+if [[ -z "${BOO_OMP_INIT_DONE:-}" ]]; then
+  export BOO_OMP_INIT_DONE=1
   if [[ "$TERM_PROGRAM" != "Apple_Terminal" ]] && command -v oh-my-posh >/dev/null 2>&1; then
-    eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/obsighost.omp.json)"
+    eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/boo.omp.json)"
   fi
 fi
 
-# Optional mode override persisted by `obsighost mode`.
-if [[ -f "$HOME/.config/obsighost/mode.zsh" ]]; then
-  source "$HOME/.config/obsighost/mode.zsh"
+# Optional mode override persisted by `boo mode`.
+if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
+  source "$HOME/.config/boo/mode.zsh"
 fi
 
-# Optional theme accents persisted by `obsighost theme`.
-if [[ -f "$HOME/.config/obsighost/theme.zsh" ]]; then
-  source "$HOME/.config/obsighost/theme.zsh"
+# Optional theme accents persisted by `boo theme`.
+if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
+  source "$HOME/.config/boo/theme.zsh"
 fi
 
-obsighost_apply_highlight_colors() {
-  local accent="${OBSIGHOST_ACCENT_COLOR:-#a882ff}"
+boo_apply_highlight_colors() {
+  local accent="${BOO_ACCENT_COLOR:-#a882ff}"
   if [[ -n ${ZSH_HIGHLIGHT_STYLES+x} ]]; then
     ZSH_HIGHLIGHT_STYLES[command]="fg=${accent}"
     ZSH_HIGHLIGHT_STYLES[builtin]="fg=${accent}"
@@ -28,44 +28,44 @@ obsighost_apply_highlight_colors() {
 }
 
 # Wrapper so mode changes are reflected in the current shell immediately.
-if ! typeset -f obsighost >/dev/null 2>&1; then
-  obsighost() {
-    if ! whence -p obsighost >/dev/null 2>&1; then
-      printf 'obsighost CLI not found. Install it, then run: obsighost <command>\n' >&2
+if ! typeset -f boo >/dev/null 2>&1; then
+  boo() {
+    if ! whence -p boo >/dev/null 2>&1; then
+      printf 'boo CLI not found. Install it, then run: boo <command>\n' >&2
       return 1
     fi
 
-    command obsighost "$@"
+    command boo "$@"
     local rc=$?
     if [[ $rc -eq 0 ]]; then
-      if [[ "${1:-}" == "mode" && -f "$HOME/.config/obsighost/mode.zsh" ]]; then
-        source "$HOME/.config/obsighost/mode.zsh"
+      if [[ "${1:-}" == "mode" && -f "$HOME/.config/boo/mode.zsh" ]]; then
+        source "$HOME/.config/boo/mode.zsh"
       fi
       if [[ "${1:-}" == "theme" ]]; then
-        if [[ -f "$HOME/.config/obsighost/theme.zsh" ]]; then
-          source "$HOME/.config/obsighost/theme.zsh"
+        if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
+          source "$HOME/.config/boo/theme.zsh"
         fi
         if [[ "$TERM_PROGRAM" != "Apple_Terminal" ]] && command -v oh-my-posh >/dev/null 2>&1; then
-          eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/obsighost.omp.json)"
+          eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/boo.omp.json)"
         fi
-        obsighost_apply_highlight_colors
+        boo_apply_highlight_colors
       fi
     fi
     return $rc
   }
 fi
 
-obsighost-mode() {
-  if command -v obsighost >/dev/null 2>&1; then
-    obsighost mode "${1:-}"
+boo-mode() {
+  if command -v boo >/dev/null 2>&1; then
+    boo mode "${1:-}"
   else
-    printf 'obsighost CLI not found. Install it, then run: obsighost mode [full|public]\n' >&2
+    printf 'boo CLI not found. Install it, then run: boo mode [full|public]\n' >&2
     return 1
   fi
 }
 
-show_obsighost_startup_panel() {
-  local panel_rgb="${OBSIGHOST_PANEL_COLOR_RGB:-168;130;255}"
+show_boo_startup_panel() {
+  local panel_rgb="${BOO_PANEL_COLOR_RGB:-168;130;255}"
   local purple="\033[38;2;${panel_rgb}m"
   local dim='\033[38;2;148;163;184m'
   local reset='\033[0m'
@@ -90,7 +90,7 @@ show_obsighost_startup_panel() {
     mem_total="-"
     mem_public="-"
   fi
-  show_private="${OBSIGHOST_SHOW_PRIVATE:-1}"
+  show_private="${BOO_SHOW_PRIVATE:-1}"
 
   logo=(
     "                    'c."
@@ -146,7 +146,7 @@ show_obsighost_startup_panel() {
     )
   else
     info=(
-      "obsighost"
+      "boo"
       "------------------------------"
       "PROFILE : public-safe"
       "OS      : ${os_name} ${os_ver}"
@@ -184,8 +184,8 @@ show_obsighost_startup_panel() {
 
 if [[ -o interactive && "$TERM_PROGRAM" == "ghostty" && "${SHLVL:-1}" == "1" && -z "${GHOSTTY_STARTUP_PANEL_SHOWN:-}" ]]; then
   export GHOSTTY_STARTUP_PANEL_SHOWN=1
-  show_obsighost_startup_panel
+  show_boo_startup_panel
 fi
 
 # Purple syntax highlighting accents.
-obsighost_apply_highlight_colors
+boo_apply_highlight_colors
