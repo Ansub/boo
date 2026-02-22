@@ -13,6 +13,11 @@ GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
 OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
+BOO_CONFIG_DIR="${HOME}/.config/boo"
+BOO_CLI_BIN="${HOME}/.local/bin/boo"
+ZSHRC_FILE="${HOME}/.zshrc"
+ZSHRC_BOO_START_MARK="# >>> Boo >>>"
+ZSHRC_BOO_END_MARK="# <<< Boo <<<"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
 DEFAULT_PROMPT_BACKEND="native"
@@ -33,6 +38,7 @@ Usage:
   boo preview [<theme>|all] [--plain]
   boo splash [list|<name>|custom <file>|none|reset]
   boo reload [--unsafe]
+  boo uninstall [--yes]
   boo status
   boo help
 
@@ -44,6 +50,7 @@ Commands:
   preview    Preview one theme or all themes (ANSI swatches or plain hex).
   splash     Configure startup splash art (built-in/custom/none/reset).
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
+  uninstall  Remove Boo files and restore installer backups when available.
   status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
 EOF
@@ -913,6 +920,151 @@ apply_theme() {
   write_theme_file "$theme"
 }
 
+latest_backup_for() {
+  local target="$1"
+  local -a matches=()
+  local latest=""
+  local current
+
+  shopt -s nullglob
+  matches=("${target}.backup-"*)
+  shopt -u nullglob
+
+  if [[ "${#matches[@]}" -eq 0 ]]; then
+    return 1
+  fi
+
+  latest="${matches[0]}"
+  for current in "${matches[@]:1}"; do
+    if [[ "$current" > "$latest" ]]; then
+      latest="$current"
+    fi
+  done
+
+  printf '%s\n' "$latest"
+}
+
+restore_latest_backup() {
+  local target="$1"
+  local label="$2"
+  local backup
+
+  if backup="$(latest_backup_for "$target")"; then
+    mkdir -p "$(dirname "$target")"
+    cp "$backup" "$target"
+    printf 'Restored %s from backup: %s\n' "$label" "$backup"
+    return 0
+  fi
+  return 1
+}
+
+remove_file_if_exists() {
+  local target="$1"
+  local label="$2"
+  if [[ -e "$target" || -L "$target" ]]; then
+    rm -f "$target"
+    printf 'Removed %s: %s\n' "$label" "$target"
+    return 0
+  fi
+  return 1
+}
+
+remove_dir_if_exists() {
+  local target="$1"
+  local label="$2"
+  if [[ -d "$target" ]]; then
+    rm -rf "$target"
+    printf 'Removed %s: %s\n' "$label" "$target"
+    return 0
+  fi
+  return 1
+}
+
+remove_boo_block_from_zshrc() {
+  if [[ ! -f "$ZSHRC_FILE" ]]; then
+    return 1
+  fi
+  if ! grep -qF "$ZSHRC_BOO_START_MARK" "$ZSHRC_FILE"; then
+    return 1
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  awk -v start="$ZSHRC_BOO_START_MARK" -v end="$ZSHRC_BOO_END_MARK" '
+    index($0, start) { skip = 1; next }
+    index($0, end) {
+      if (skip) {
+        skip = 0
+        next
+      }
+    }
+    !skip { print }
+  ' "$ZSHRC_FILE" > "$tmp"
+  mv "$tmp" "$ZSHRC_FILE"
+  printf 'Removed Boo source block from: %s\n' "$ZSHRC_FILE"
+  return 0
+}
+
+cmd_uninstall() {
+  local arg="${1:-}"
+  local assume_yes=0
+  local input=""
+
+  case "$arg" in
+    '' )
+      ;;
+    --yes|-y)
+      assume_yes=1
+      ;;
+    *)
+      printf 'Usage: boo uninstall [--yes]\n' >&2
+      exit 1
+      ;;
+  esac
+
+  if (( assume_yes == 0 )); then
+    printf 'This removes Boo files and restores installer backups when available. Continue? [y/N] '
+    if ! read -r input; then
+      input=""
+    fi
+    case "$input" in
+      y|Y|yes|YES)
+        ;;
+      *)
+        printf 'Uninstall cancelled.\n'
+        return 0
+        ;;
+    esac
+  fi
+
+  printf 'Uninstalling Boo...\n'
+  remove_boo_block_from_zshrc || printf 'No Boo source block found in %s.\n' "$ZSHRC_FILE"
+
+  if ! restore_latest_backup "$GHOSTTY_CONFIG_PRIMARY" "Ghostty config"; then
+    if [[ -f "$GHOSTTY_CONFIG_PRIMARY" ]]; then
+      printf 'No backup found for Ghostty config; leaving as-is: %s\n' "$GHOSTTY_CONFIG_PRIMARY"
+    fi
+  fi
+  if ! restore_latest_backup "$GHOSTTY_CONFIG_MAC" "Ghostty macOS config"; then
+    if [[ -f "$GHOSTTY_CONFIG_MAC" ]]; then
+      printf 'No backup found for Ghostty macOS config; leaving as-is: %s\n' "$GHOSTTY_CONFIG_MAC"
+    fi
+  fi
+
+  if ! restore_latest_backup "$OMP_ACTIVE_CONFIG" "oh-my-posh Boo config"; then
+    remove_file_if_exists "$OMP_ACTIVE_CONFIG" "oh-my-posh Boo config" || true
+  fi
+
+  if ! restore_latest_backup "$BOO_CLI_BIN" "Boo CLI"; then
+    remove_file_if_exists "$BOO_CLI_BIN" "Boo CLI" || true
+  fi
+
+  remove_dir_if_exists "$BOO_CONFIG_DIR" "Boo config directory" || true
+
+  printf 'Boo uninstall complete.\n'
+  printf 'Run `exec zsh` (or open a new shell) to refresh your current session.\n'
+}
+
 cmd_mode() {
   local arg="${1:-}"
 
@@ -1227,6 +1379,10 @@ case "$subcommand" in
   reload)
     shift || true
     cmd_reload "${1:-}"
+    ;;
+  uninstall)
+    shift || true
+    cmd_uninstall "${1:-}"
     ;;
   preview)
     shift || true

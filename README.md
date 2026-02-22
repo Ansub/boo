@@ -60,6 +60,8 @@ boo splash reset
 boo reload
 boo reload --unsafe
 boo status
+boo uninstall
+boo uninstall --yes
 ```
 
 - `full`: shows `user@host`, kernel, model, and load.
@@ -80,6 +82,8 @@ boo status
 - `boo splash reset`: restores default splash (`apple`).
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
+- `boo uninstall`: removes Boo files, removes the Boo block from `~/.zshrc`, and restores installer backups when present.
+- `boo uninstall --yes`: same as uninstall, but skips confirmation prompt.
 - `boo mode` prints current mode.
 - `boo status` prints mode, theme, prompt backend, opacity, and active config files.
 
@@ -121,7 +125,7 @@ If reload is not working:
 - `configs/ghostty/config` - Ghostty config
 - `configs/ohmyposh/boo.omp.json` - prompt theme
 - `configs/ohmyposh/presets/*.omp.json` - prompt presets by theme
-- `bin/boo` - CLI for mode/theme/splash/opacity/status
+- `bin/boo` - CLI for mode/theme/splash/opacity/status/uninstall
 - `shell/boo.zsh` - shell integration + startup panel
 - `art/*.txt` - built-in startup ASCII art
 - `scripts/install.sh` - installer
