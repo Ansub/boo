@@ -346,7 +346,9 @@ EOF
 
   self_bin="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
   if [[ -f "$self_bin" ]]; then
-    cp "$self_bin" "$LOCAL_BIN_FILE"
+    if [[ "$self_bin" != "$LOCAL_BIN_FILE" ]]; then
+      cp "$self_bin" "$LOCAL_BIN_FILE"
+    fi
     chmod +x "$LOCAL_BIN_FILE"
   fi
 }
