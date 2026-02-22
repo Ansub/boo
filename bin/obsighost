@@ -7,6 +7,8 @@ GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
+UNAME_S="$(uname -s)"
+UNSAFE_RELOAD_REASON=""
 
 ghostty_targets=()
 
@@ -18,7 +20,7 @@ Usage:
   obsighost mode [full|public]
   obsighost theme [list|set <name>|<name>]
   obsighost opacity [value|glass|solid]
-  obsighost reload
+  obsighost reload [--unsafe]
   obsighost status
   obsighost help
 
@@ -26,26 +28,28 @@ Commands:
   mode       Show or set startup panel mode.
   theme      List or apply theme presets.
   opacity    Show or set Ghostty background opacity.
-  reload     Best-effort reload (or open new Ghostty window).
+  reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/opacity.
   help       Show this help message.
 EOF
 }
 
 read_mode() {
-  if [[ "${OBSIGHOST_SHOW_PRIVATE:-}" == "1" ]]; then
-    printf 'full\n'
-    return
+  if [[ -f "$MODE_FILE" ]]; then
+    if grep -q 'OBSIGHOST_SHOW_PRIVATE=0' "$MODE_FILE"; then
+      printf 'public\n'
+      return
+    fi
+    if grep -q 'OBSIGHOST_SHOW_PRIVATE=1' "$MODE_FILE"; then
+      printf 'full\n'
+      return
+    fi
   fi
   if [[ "${OBSIGHOST_SHOW_PRIVATE:-}" == "0" ]]; then
     printf 'public\n'
-    return
+  else
+    printf 'full\n'
   fi
-  if [[ -f "$MODE_FILE" ]] && grep -q 'OBSIGHOST_SHOW_PRIVATE=0' "$MODE_FILE"; then
-    printf 'public\n'
-    return
-  fi
-  printf 'full\n'
 }
 
 write_mode_file() {
@@ -75,15 +79,34 @@ write_theme_file() {
 collect_ghostty_targets() {
   ghostty_targets=()
 
+  if [[ "$UNAME_S" == "Darwin" ]]; then
+    # Prefer whichever config Ghostty is already using (non-empty file).
+    if [[ -s "$GHOSTTY_CONFIG_MAC" ]]; then
+      ghostty_targets+=("$GHOSTTY_CONFIG_MAC")
+    fi
+    if [[ -s "$GHOSTTY_CONFIG_PRIMARY" ]]; then
+      ghostty_targets+=("$GHOSTTY_CONFIG_PRIMARY")
+    fi
+
+    if [[ "${#ghostty_targets[@]}" -eq 0 ]]; then
+      if [[ -f "$GHOSTTY_CONFIG_MAC" ]]; then
+        ghostty_targets+=("$GHOSTTY_CONFIG_MAC")
+      elif [[ -f "$GHOSTTY_CONFIG_PRIMARY" ]]; then
+        ghostty_targets+=("$GHOSTTY_CONFIG_PRIMARY")
+      else
+        mkdir -p "$(dirname "$GHOSTTY_CONFIG_PRIMARY")"
+        touch "$GHOSTTY_CONFIG_PRIMARY"
+        ghostty_targets+=("$GHOSTTY_CONFIG_PRIMARY")
+      fi
+    fi
+    return
+  fi
+
   mkdir -p "$(dirname "$GHOSTTY_CONFIG_PRIMARY")"
   if [[ ! -f "$GHOSTTY_CONFIG_PRIMARY" ]]; then
     touch "$GHOSTTY_CONFIG_PRIMARY"
   fi
   ghostty_targets+=("$GHOSTTY_CONFIG_PRIMARY")
-
-  if [[ -f "$GHOSTTY_CONFIG_MAC" ]]; then
-    ghostty_targets+=("$GHOSTTY_CONFIG_MAC")
-  fi
 }
 
 upsert_key() {
@@ -242,39 +265,130 @@ set_opacity_value() {
   done
 }
 
+unsafe_reload_via_keystroke() {
+  local result
+  UNSAFE_RELOAD_REASON=""
+
+  if [[ "$UNAME_S" != "Darwin" ]]; then
+    UNSAFE_RELOAD_REASON="not-darwin"
+    return 1
+  fi
+  if ! command -v osascript >/dev/null 2>&1; then
+    UNSAFE_RELOAD_REASON="no-osascript"
+    return 1
+  fi
+
+  result="$(osascript <<'APPLESCRIPT' 2>/dev/null || true
+set bundleId to "com.mitchellh.ghostty"
+
+try
+  tell application "System Events"
+    if not (exists (first process whose bundle identifier is bundleId)) then
+      return "not-running"
+    end if
+    set ghosttyProc to first process whose bundle identifier is bundleId
+    set frontmost of ghosttyProc to true
+  end tell
+on error errMsg number errNum
+  return "process-failed:" & errNum
+end try
+
+delay 0.12
+
+try
+  tell application "System Events"
+    set frontProc to first process whose frontmost is true
+    if bundle identifier of frontProc is not bundleId then
+      return "not-frontmost"
+    end if
+    -- Key code 43 is the physical comma key. This mirrors Cmd+Shift+,.
+    key code 43 using {command down, shift down}
+  end tell
+  return "ok"
+on error errMsg number errNum
+  return "keystroke-failed:" & errNum
+end try
+APPLESCRIPT
+)"
+
+  if [[ "$result" == "ok" ]]; then
+    return 0
+  fi
+
+  if [[ -z "$result" ]]; then
+    UNSAFE_RELOAD_REASON="osascript-error"
+    return 1
+  fi
+
+  case "$result" in
+    not-running)
+      UNSAFE_RELOAD_REASON="not-running"
+      ;;
+    check-failed)
+      UNSAFE_RELOAD_REASON="check-failed"
+      ;;
+    process-failed:*|not-frontmost)
+      UNSAFE_RELOAD_REASON="$result"
+      ;;
+    keystroke-failed:*)
+      UNSAFE_RELOAD_REASON="$result"
+      ;;
+    *)
+      UNSAFE_RELOAD_REASON="unknown"
+      ;;
+  esac
+  return 1
+}
+
 cmd_reload() {
-  local applied=0
-  local ghostty_running=0
+  local option="${1:-}"
+  local unsafe=0
+
+  case "$option" in
+    ''|safe|--safe)
+      ;;
+    unsafe|--unsafe|-u)
+      unsafe=1
+      ;;
+    *)
+      printf 'Invalid reload option: %s\n' "$option" >&2
+      printf 'Usage: obsighost reload [--unsafe]\n' >&2
+      exit 1
+      ;;
+  esac
 
   if [[ "${OBSIGHOST_NO_AUTO_APPLY:-0}" == "1" ]]; then
     printf 'Auto-apply skipped (OBSIGHOST_NO_AUTO_APPLY=1).\n'
     return 0
   fi
 
-  if pgrep -x Ghostty >/dev/null 2>&1; then
-    ghostty_running=1
-  fi
-
-  if [[ "$(uname -s)" == "Darwin" ]] && (( ghostty_running == 1 )) && command -v osascript >/dev/null 2>&1; then
-    if osascript \
-      -e 'tell application "Ghostty" to activate' \
-      -e 'tell application "System Events" to keystroke "," using {command down, shift down}' \
-      >/dev/null 2>&1; then
-      printf 'Triggered Ghostty config reload.\n'
-      applied=1
+  if (( unsafe == 1 )); then
+    if unsafe_reload_via_keystroke; then
+      printf 'Triggered Ghostty reload_config via Cmd+Shift+, (unsafe mode).\n'
+      printf 'Warning: this can reset active terminals/sessions.\n'
+      if [[ "$UNAME_S" == "Darwin" ]]; then
+        printf 'On macOS, background-opacity changes require a full Ghostty restart.\n'
+      fi
+      return 0
+    else
+      printf 'Unsafe reload unavailable (%s).\n' "${UNSAFE_RELOAD_REASON:-unknown}" >&2
+      if [[ "${UNSAFE_RELOAD_REASON:-}" == keystroke-failed:* ]] || [[ "${UNSAFE_RELOAD_REASON:-}" == process-failed:* ]]; then
+        printf 'Tip: grant Automation/Accessibility permission for Terminal and System Events.\n' >&2
+      elif [[ "${UNSAFE_RELOAD_REASON:-}" == not-frontmost ]]; then
+        printf 'Tip: focus Ghostty and run the command again.\n' >&2
+      fi
+      printf 'No window was opened. Restart/reopen Ghostty manually to apply changes.\n' >&2
+      if [[ "$UNAME_S" == "Darwin" ]]; then
+        printf 'On macOS, background-opacity changes require a full Ghostty restart.\n' >&2
+      fi
+      return 1
     fi
   fi
 
-  if (( applied == 0 )) && [[ "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
-    if open -na Ghostty.app >/dev/null 2>&1; then
-      printf 'Opened a new Ghostty instance to apply updated config.\n'
-      applied=1
-    fi
-  fi
-
-  if (( applied == 0 )); then
-    printf 'Auto-apply unavailable. Reload Ghostty config or open a new window.\n'
-    return 1
+  printf 'Config updated. Safe reload does not open windows or touch running sessions.\n'
+  printf 'Restart/reopen Ghostty manually to apply changes.\n'
+  if [[ "$UNAME_S" == "Darwin" ]]; then
+    printf 'On macOS, background-opacity changes require a full Ghostty restart.\n'
   fi
 }
 
@@ -491,7 +605,8 @@ case "$subcommand" in
     cmd_opacity "${1:-}"
     ;;
   reload)
-    cmd_reload
+    shift || true
+    cmd_reload "${1:-}"
     ;;
   status)
     cmd_status

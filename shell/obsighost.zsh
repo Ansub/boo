@@ -12,6 +12,23 @@ if [[ -f "$HOME/.config/obsighost/mode.zsh" ]]; then
   source "$HOME/.config/obsighost/mode.zsh"
 fi
 
+# Wrapper so mode changes are reflected in the current shell immediately.
+if ! typeset -f obsighost >/dev/null 2>&1; then
+  obsighost() {
+    if ! command -v obsighost >/dev/null 2>&1; then
+      printf 'obsighost CLI not found. Install it, then run: obsighost <command>\n' >&2
+      return 1
+    fi
+
+    command obsighost "$@"
+    local rc=$?
+    if [[ $rc -eq 0 && "${1:-}" == "mode" && -f "$HOME/.config/obsighost/mode.zsh" ]]; then
+      source "$HOME/.config/obsighost/mode.zsh"
+    fi
+    return $rc
+  }
+fi
+
 obsighost-mode() {
   if command -v obsighost >/dev/null 2>&1; then
     obsighost mode "${1:-}"

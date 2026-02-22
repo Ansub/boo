@@ -42,6 +42,7 @@ obsighost theme graphite
 obsighost opacity 0.92
 obsighost opacity glass
 obsighost reload
+obsighost reload --unsafe
 obsighost status
 ```
 
@@ -51,12 +52,26 @@ obsighost status
 - `obsighost theme <name>`: applies a preset to Ghostty text/palette colors.
 - `obsighost opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `obsighost opacity glass|solid`: quick presets (`0.92` / `1.00`).
-- `obsighost reload`: best-effort apply (reload running Ghostty, else open new instance).
+- `obsighost reload`: safe apply guidance (does not open windows or touch running sessions).
+- `obsighost reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `obsighost mode` prints current mode.
 - `obsighost status` prints mode, theme, opacity, and active config files.
 
 Mode is persisted in `~/.config/obsighost/mode.zsh`, theme in `~/.config/obsighost/theme`.
-Theme/opacity commands automatically run `obsighost reload` after writing config.
+Theme/opacity commands auto-run `obsighost reload` after writing config.
+When sourced via `shell/obsighost.zsh`, mode changes sync into the current shell session immediately.
+
+## Reload Status
+
+Current behavior:
+- `obsighost reload` is non-destructive and does not force window/session changes.
+- `obsighost reload --unsafe` can work for immediate reload, but depends on macOS permissions/focus.
+- On macOS, `background-opacity` still typically needs a full Ghostty restart.
+
+If reload is not working:
+1. Focus Ghostty and run `obsighost reload --unsafe`.
+2. If it still does not apply, fully quit Ghostty and reopen it.
+3. For opacity specifically, prefer a full app restart on macOS.
 
 ## Repo Structure
 
@@ -72,6 +87,9 @@ Theme/opacity commands automatically run `obsighost reload` after writing config
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/obsighost/obsighost.zsh`.
 - Legacy alias `obsighost-mode` is still available and forwards to `obsighost mode`.
 - To skip auto-reload during scripting, run commands with `OBSIGHOST_NO_AUTO_APPLY=1`.
+- On macOS, Ghostty only applies `background-opacity` after a full app restart.
+- `reload --unsafe` may reset active terminals/sessions depending on Ghostty state.
+- On macOS, the CLI updates the existing non-empty Ghostty config path to avoid split-config conflicts.
 
 ## License
 

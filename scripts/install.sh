@@ -20,7 +20,7 @@ echo "Installed Ghostty config -> ~/.config/ghostty/config"
 
 # Some macOS installs use this path.
 MAC_GHOSTTY="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
-if [[ -f "$MAC_GHOSTTY" || -d "$(dirname "$MAC_GHOSTTY")" ]]; then
+if [[ -f "$MAC_GHOSTTY" ]]; then
   mkdir -p "$(dirname "$MAC_GHOSTTY")"
   backup_file "$MAC_GHOSTTY"
   cp "$REPO_DIR/configs/ghostty/config" "$MAC_GHOSTTY"
