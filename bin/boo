@@ -26,7 +26,7 @@ Usage:
   boo prompt [show|list|set <native|omp>|native|omp]
   boo theme [list|set <name>|<name>]
   boo opacity [value|glass|solid]
-  boo preview [<theme>|all]
+  boo preview [<theme>|all] [--plain]
   boo reload [--unsafe]
   boo status
   boo help
@@ -36,7 +36,7 @@ Commands:
   prompt     Show or set shell prompt backend.
   theme      List or apply full terminal/prompt presets.
   opacity    Show or set Ghostty background opacity.
-  preview    Preview one theme or all themes as ANSI true-color swatches.
+  preview    Preview one theme or all themes (ANSI swatches or plain hex).
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
@@ -234,22 +234,53 @@ print_color_swatch_line() {
   printf '\033[38;2;%sm%s\033[0m\n' "$rgb" "$hex"
 }
 
+print_color_plain_line() {
+  local label="$1"
+  local hex="$2"
+  printf '  %-9s %s\n' "$label" "$hex"
+}
+
 print_theme_preview() {
   local theme="$1"
+  local plain="${2:-0}"
   local line key value
 
   printf '%s\n' "$theme"
   while IFS= read -r line; do
     key="${line%%=*}"
     value="${line#*=}"
-    print_color_swatch_line "$key" "$value"
+    if (( plain == 1 )); then
+      print_color_plain_line "$key" "$value"
+    else
+      print_color_swatch_line "$key" "$value"
+    fi
   done < <(theme_core_colors "$theme")
   printf '  Apply? boo theme %s\n' "$theme"
 }
 
 print_preview_all_row() {
   local theme="$1"
+  local plain="${2:-0}"
   local line value rgb
+  local key
+
+  if (( plain == 1 )); then
+    local bg="" fg="" accent="" cursor="" selection=""
+    while IFS= read -r line; do
+      key="${line%%=*}"
+      value="${line#*=}"
+      case "$key" in
+        bg) bg="$value" ;;
+        fg) fg="$value" ;;
+        accent) accent="$value" ;;
+        cursor) cursor="$value" ;;
+        selection) selection="$value" ;;
+      esac
+    done < <(theme_core_colors "$theme")
+    printf '%-10s bg=%s fg=%s accent=%s cursor=%s selection=%s boo theme %s\n' \
+      "$theme" "$bg" "$fg" "$accent" "$cursor" "$selection" "$theme"
+    return
+  fi
 
   printf '%-10s ' "$theme"
   while IFS= read -r line; do
@@ -987,27 +1018,53 @@ cmd_opacity() {
 }
 
 cmd_preview() {
-  local arg="${1:-}"
+  local target=""
+  local token
+  local plain=0
   local themes=(obsidian graphite lunar crimson matrix)
   local theme
 
-  case "$arg" in
-    '' )
-      printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all>\n'
-      ;;
+  for token in "$@"; do
+    case "$token" in
+      '' )
+        ;;
+      --plain|-p)
+        plain=1
+        ;;
+      obsidian|graphite|lunar|crimson|matrix|all)
+        if [[ -n "$target" ]]; then
+          printf 'Only one preview target can be used at a time.\n' >&2
+          printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n' >&2
+          exit 1
+        fi
+        target="$token"
+        ;;
+      *)
+        printf 'Invalid preview option/target: %s\n' "$token" >&2
+        printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n' >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$target" ]]; then
+    printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n'
+    return
+  fi
+
+  case "$target" in
     all)
-      printf 'Legend: bg fg accent cursor selection\n\n'
+      if (( plain == 1 )); then
+        printf 'Legend: bg fg accent cursor selection (hex)\n\n'
+      else
+        printf 'Legend: bg fg accent cursor selection\n\n'
+      fi
       for theme in "${themes[@]}"; do
-        print_preview_all_row "$theme"
+        print_preview_all_row "$theme" "$plain"
       done
       ;;
-    obsidian|graphite|lunar|crimson|matrix)
-      print_theme_preview "$arg"
-      ;;
     *)
-      printf 'Invalid preview target: %s\n' "$arg" >&2
-      printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all>\n' >&2
-      exit 1
+      print_theme_preview "$target" "$plain"
       ;;
   esac
 }
@@ -1071,7 +1128,7 @@ case "$subcommand" in
     ;;
   preview)
     shift || true
-    cmd_preview "${1:-}"
+    cmd_preview "$@"
     ;;
   status)
     cmd_status
