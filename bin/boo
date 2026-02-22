@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODE_FILE="${HOME}/.config/obsighost/mode.zsh"
-THEME_FILE="${HOME}/.config/obsighost/theme"
-THEME_ENV_FILE="${HOME}/.config/obsighost/theme.zsh"
+MODE_FILE="${HOME}/.config/boo/mode.zsh"
+THEME_FILE="${HOME}/.config/boo/theme"
+THEME_ENV_FILE="${HOME}/.config/boo/theme.zsh"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
-OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/obsighost.omp.json"
-OMP_PRESET_DIR="${HOME}/.config/obsighost/ohmyposh"
+OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
+OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
 UNAME_S="$(uname -s)"
@@ -17,15 +17,15 @@ ghostty_targets=()
 
 print_help() {
   cat <<'EOF'
-ObsiGhost CLI
+Boo CLI
 
 Usage:
-  obsighost mode [full|public]
-  obsighost theme [list|set <name>|<name>]
-  obsighost opacity [value|glass|solid]
-  obsighost reload [--unsafe]
-  obsighost status
-  obsighost help
+  boo mode [full|public]
+  boo theme [list|set <name>|<name>]
+  boo opacity [value|glass|solid]
+  boo reload [--unsafe]
+  boo status
+  boo help
 
 Commands:
   mode       Show or set startup panel mode.
@@ -39,16 +39,16 @@ EOF
 
 read_mode() {
   if [[ -f "$MODE_FILE" ]]; then
-    if grep -q 'OBSIGHOST_SHOW_PRIVATE=0' "$MODE_FILE"; then
+    if grep -q 'BOO_SHOW_PRIVATE=0' "$MODE_FILE"; then
       printf 'public\n'
       return
     fi
-    if grep -q 'OBSIGHOST_SHOW_PRIVATE=1' "$MODE_FILE"; then
+    if grep -q 'BOO_SHOW_PRIVATE=1' "$MODE_FILE"; then
       printf 'full\n'
       return
     fi
   fi
-  if [[ "${OBSIGHOST_SHOW_PRIVATE:-}" == "0" ]]; then
+  if [[ "${BOO_SHOW_PRIVATE:-}" == "0" ]]; then
     printf 'public\n'
   else
     printf 'full\n'
@@ -58,7 +58,7 @@ read_mode() {
 write_mode_file() {
   local value="$1"
   mkdir -p "$(dirname "$MODE_FILE")"
-  printf 'export OBSIGHOST_SHOW_PRIVATE=%s\n' "$value" > "$MODE_FILE"
+  printf 'export BOO_SHOW_PRIVATE=%s\n' "$value" > "$MODE_FILE"
 }
 
 read_theme_file() {
@@ -111,9 +111,9 @@ write_theme_env_file() {
 
   mkdir -p "$(dirname "$THEME_ENV_FILE")"
   cat > "$THEME_ENV_FILE" <<EOF
-export OBSIGHOST_THEME="${theme}"
-export OBSIGHOST_ACCENT_COLOR="${accent}"
-export OBSIGHOST_PANEL_COLOR_RGB="${panel}"
+export BOO_THEME="${theme}"
+export BOO_ACCENT_COLOR="${accent}"
+export BOO_PANEL_COLOR_RGB="${panel}"
 EOF
 }
 
@@ -533,13 +533,13 @@ cmd_reload() {
       ;;
     *)
       printf 'Invalid reload option: %s\n' "$option" >&2
-      printf 'Usage: obsighost reload [--unsafe]\n' >&2
+      printf 'Usage: boo reload [--unsafe]\n' >&2
       exit 1
       ;;
   esac
 
-  if [[ "${OBSIGHOST_NO_AUTO_APPLY:-0}" == "1" ]]; then
-    printf 'Auto-apply skipped (OBSIGHOST_NO_AUTO_APPLY=1).\n'
+  if [[ "${BOO_NO_AUTO_APPLY:-0}" == "1" ]]; then
+    printf 'Auto-apply skipped (BOO_NO_AUTO_APPLY=1).\n'
     return 0
   fi
 
@@ -686,21 +686,21 @@ cmd_mode() {
   case "$arg" in
     '')
       printf 'Current mode: %s\n' "$(read_mode)"
-      printf 'Usage: obsighost mode [full|public]\n'
+      printf 'Usage: boo mode [full|public]\n'
       ;;
     full|private|1)
       write_mode_file "1"
-      printf 'ObsiGhost mode set to: full\n'
+      printf 'Boo mode set to: full\n'
       printf 'Apply now: source ~/.zshrc\n'
       ;;
     public|safe|0)
       write_mode_file "0"
-      printf 'ObsiGhost mode set to: public\n'
+      printf 'Boo mode set to: public\n'
       printf 'Apply now: source ~/.zshrc\n'
       ;;
     *)
       printf 'Invalid mode: %s\n' "$arg" >&2
-      printf 'Usage: obsighost mode [full|public]\n' >&2
+      printf 'Usage: boo mode [full|public]\n' >&2
       exit 1
       ;;
   esac
@@ -713,12 +713,12 @@ cmd_theme() {
   case "$action" in
     '')
       printf 'Current theme: %s\n' "$(read_theme_file)"
-      printf 'Usage: obsighost theme [list|set <name>|<name>]\n'
+      printf 'Usage: boo theme [list|set <name>|<name>]\n'
       ;;
     list)
       cat <<'EOF'
 Available themes:
-  obsidian  - Original ObsiGhost palette + purple accents
+  obsidian  - Original Boo palette + purple accents
   graphite  - Neutral gray + violet accents
   lunar     - Cool blue-gray, no purple accents
   crimson   - High-contrast red assault mode
@@ -727,25 +727,25 @@ EOF
       ;;
     set)
       if [[ -z "$theme" ]]; then
-        printf 'Usage: obsighost theme set <obsidian|graphite|lunar|crimson|matrix>\n' >&2
+        printf 'Usage: boo theme set <obsidian|graphite|lunar|crimson|matrix>\n' >&2
         exit 1
       fi
       apply_theme "$theme"
-      printf 'ObsiGhost theme set to: %s\n' "$theme"
+      printf 'Boo theme set to: %s\n' "$theme"
       printf 'Prompt + syntax accents updated.\n'
       printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
       cmd_reload || true
       ;;
     obsidian|graphite|lunar|crimson|matrix)
       apply_theme "$action"
-      printf 'ObsiGhost theme set to: %s\n' "$action"
+      printf 'Boo theme set to: %s\n' "$action"
       printf 'Prompt + syntax accents updated.\n'
       printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
       cmd_reload || true
       ;;
     *)
       printf 'Invalid theme command: %s\n' "$action" >&2
-      printf 'Usage: obsighost theme [list|set <name>|<name>]\n' >&2
+      printf 'Usage: boo theme [list|set <name>|<name>]\n' >&2
       exit 1
       ;;
   esac
@@ -758,7 +758,7 @@ cmd_opacity() {
   case "$arg" in
     '')
       printf 'Current opacity: %s\n' "$(current_opacity)"
-      printf 'Usage: obsighost opacity [value|glass|solid]\n'
+      printf 'Usage: boo opacity [value|glass|solid]\n'
       ;;
     *)
       resolved="$(resolve_opacity "$arg")"
