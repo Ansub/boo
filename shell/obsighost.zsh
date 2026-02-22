@@ -13,7 +13,7 @@ show_obsighost_startup_panel() {
   local reset='\033[0m'
   local now shell_name host_short os_name os_ver kernel cpu_cores cpu_arch
   local load_avg vm_out page_size active wired compressed total_bytes used_bytes
-  local mem_used mem_total iface local_ip model
+  local mem_used mem_total model
   local -a logo info
   local i max left_col right_col
   local logo_len info_len logo_start info_start left_idx right_idx
@@ -46,14 +46,6 @@ show_obsighost_startup_panel() {
     mem_total="-"
   fi
 
-  iface="$(route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}')"
-  if [[ -n "$iface" ]]; then
-    local_ip="$(ipconfig getifaddr "$iface" 2>/dev/null || echo '-')"
-  else
-    iface="-"
-    local_ip="-"
-  fi
-
   logo=(
     "                    'c."
     "                 ,xNMM."
@@ -84,7 +76,6 @@ show_obsighost_startup_panel() {
     "CPU     : ${cpu_cores} cores (${cpu_arch})"
     "LOAD    : ${load_avg}"
     "MEMORY  : ${mem_used}/${mem_total} GB"
-    "NETWORK : ${iface} ${local_ip}"
     "TIME    : ${now}"
   )
 
