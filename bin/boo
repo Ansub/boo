@@ -117,12 +117,24 @@ effective_prompt_backend() {
   printf '%s\n' "$configured"
 }
 
-print_prompt_apply_hint() {
+print_command_box() {
+  local cmd="$1"
+  local pad=1
+  local width=$(( ${#cmd} + (pad * 2) ))
+  local border
+  border="$(printf '%*s' "$width" '' | tr ' ' '─')"
+  printf '┌%s┐\n' "$border"
+  printf '│%*s%s%*s│\n' "$pad" '' "$cmd" "$pad" ''
+  printf '└%s┘\n' "$border"
+}
+
+print_shell_apply_hint() {
   if [[ "${BOO_SHELL_WRAPPER:-0}" == "1" ]]; then
     printf 'Applied in current shell.\n'
-  else
-    printf 'To apply now in this shell, run: exec zsh\n'
+    return
   fi
+  printf 'To apply now in this shell, run:\n'
+  print_command_box "exec zsh"
 }
 
 theme_accent_color() {
@@ -836,12 +848,12 @@ cmd_mode() {
     full|private|1)
       write_mode_file "1"
       printf 'Boo mode set to: full\n'
-      printf 'Apply now: source ~/.zshrc\n'
+      print_shell_apply_hint
       ;;
     public|safe|0)
       write_mode_file "0"
       printf 'Boo mode set to: public\n'
-      printf 'Apply now: source ~/.zshrc\n'
+      print_shell_apply_hint
       ;;
     *)
       printf 'Invalid mode: %s\n' "$arg" >&2
@@ -886,7 +898,7 @@ EOF
           if [[ "$backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
             printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
           fi
-          print_prompt_apply_hint
+          print_shell_apply_hint
           ;;
         *)
           printf 'Invalid prompt backend: %s\n' "$backend" >&2
@@ -901,7 +913,7 @@ EOF
       if [[ "$action" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
         printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
       fi
-      print_prompt_apply_hint
+      print_shell_apply_hint
       ;;
     *)
       printf 'Invalid prompt command: %s\n' "$action" >&2
@@ -938,14 +950,14 @@ EOF
       apply_theme "$theme"
       printf 'Boo theme set to: %s\n' "$theme"
       printf 'Prompt + syntax accents updated.\n'
-      printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
+      print_shell_apply_hint
       cmd_reload || true
       ;;
     obsidian|graphite|lunar|crimson|matrix)
       apply_theme "$action"
       printf 'Boo theme set to: %s\n' "$action"
       printf 'Prompt + syntax accents updated.\n'
-      printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
+      print_shell_apply_hint
       cmd_reload || true
       ;;
     *)
