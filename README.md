@@ -34,6 +34,8 @@ Then open a new Ghostty window.
 Default is full-info mode.
 
 ```bash
+obsighost crimson        # shorthand
+obsighost matrix         # shorthand
 obsighost mode full
 obsighost mode public
 obsighost mode

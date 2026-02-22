@@ -809,6 +809,9 @@ case "$subcommand" in
     shift || true
     cmd_theme "${1:-}" "${2:-}"
     ;;
+  obsidian|graphite|lunar|crimson|matrix)
+    cmd_theme "$subcommand"
+    ;;
   opacity)
     shift || true
     cmd_opacity "${1:-}"
