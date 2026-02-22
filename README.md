@@ -1,5 +1,8 @@
 # ObsiGhost
 
+<img width="2078" height="974" alt="CleanShot 2026-02-22 at 21 18 45@2x" src="https://github.com/user-attachments/assets/a0f87305-35c8-45d3-baed-9eda6b4956ac" />
+
+
 ObsiGhost is a polished Ghostty + Zsh + Oh My Posh setup inspired by Obsidian-like colors.
 
 It includes:
