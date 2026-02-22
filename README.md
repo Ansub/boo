@@ -41,6 +41,7 @@ Then open a new Ghostty window.
 
 - Installer creates timestamped backups of replaced files.
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/obsighost/obsighost.zsh`.
+- Startup dashboard is `public-safe` by default (no `user@host`, model, kernel, or load). To show full local machine details, set `OBSIGHOST_SHOW_PRIVATE=1`.
 
 ## License
 

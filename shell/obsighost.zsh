@@ -11,40 +11,28 @@ show_obsighost_startup_panel() {
   local purple='\033[38;2;168;130;255m'
   local dim='\033[38;2;148;163;184m'
   local reset='\033[0m'
-  local now shell_name host_short os_name os_ver kernel cpu_cores cpu_arch
-  local load_avg vm_out page_size active wired compressed total_bytes used_bytes
-  local mem_used mem_total model
+  local now shell_name os_name os_ver cpu_cores cpu_arch total_bytes mem_total mem_public
+  local show_private host_short kernel load_avg vm_out page_size active wired compressed used_bytes
+  local mem_used model
   local -a logo info
   local i max left_col right_col
   local logo_len info_len logo_start info_start left_idx right_idx
 
   now="$(date '+%a %b %d, %I:%M %p')"
   shell_name="${SHELL##*/}"
-  host_short="$(hostname -s 2>/dev/null || hostname)"
   os_name="$(sw_vers -productName 2>/dev/null || uname -s)"
   os_ver="$(sw_vers -productVersion 2>/dev/null || uname -r)"
-  kernel="$(uname -r 2>/dev/null)"
   cpu_cores="$(sysctl -n hw.ncpu 2>/dev/null || echo '-')"
   cpu_arch="$(uname -m 2>/dev/null || echo '-')"
-  model="$(sysctl -n hw.model 2>/dev/null || echo '-')"
-  load_avg="$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{printf "%s %s %s", $1, $2, $3}')"
-  [[ -z "${load_avg}" ]] && load_avg="-"
-
-  vm_out="$(vm_stat 2>/dev/null)"
-  page_size="$(printf '%s\n' "$vm_out" | awk '/page size of/ {gsub("\\.","",$8); print $8}')"
-  active="$(printf '%s\n' "$vm_out" | awk '/Pages active/ {gsub("\\.","",$3); print $3}')"
-  wired="$(printf '%s\n' "$vm_out" | awk '/Pages wired down/ {gsub("\\.","",$4); print $4}')"
-  compressed="$(printf '%s\n' "$vm_out" | awk '/Pages occupied by compressor/ {gsub("\\.","",$5); print $5}')"
-
-  if [[ -n "$page_size" && -n "$active" && -n "$wired" && -n "$compressed" ]]; then
-    used_bytes=$(( (active + wired + compressed) * page_size ))
-    total_bytes="$(sysctl -n hw.memsize 2>/dev/null)"
-    mem_used="$(awk "BEGIN {printf \"%.1f\", ${used_bytes}/1073741824}")"
+  total_bytes="$(sysctl -n hw.memsize 2>/dev/null)"
+  if [[ -n "$total_bytes" ]]; then
     mem_total="$(awk "BEGIN {printf \"%.1f\", ${total_bytes}/1073741824}")"
+    mem_public="${mem_total} GB"
   else
-    mem_used="-"
     mem_total="-"
+    mem_public="-"
   fi
+  show_private="${OBSIGHOST_SHOW_PRIVATE:-0}"
 
   logo=(
     "                    'c."
@@ -66,18 +54,50 @@ show_obsighost_startup_panel() {
     "       .cooc,.    .,coo:."
   )
 
-  info=(
-    "${USER}@${host_short}"
-    "------------------------------"
-    "OS      : ${os_name} ${os_ver}"
-    "KERNEL  : ${kernel}"
-    "SHELL   : ${shell_name}"
-    "MODEL   : ${model}"
-    "CPU     : ${cpu_cores} cores (${cpu_arch})"
-    "LOAD    : ${load_avg}"
-    "MEMORY  : ${mem_used}/${mem_total} GB"
-    "TIME    : ${now}"
-  )
+  if [[ "$show_private" == "1" ]]; then
+    host_short="$(hostname -s 2>/dev/null || hostname)"
+    kernel="$(uname -r 2>/dev/null)"
+    model="$(sysctl -n hw.model 2>/dev/null || echo '-')"
+    load_avg="$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{printf "%s %s %s", $1, $2, $3}')"
+    [[ -z "${load_avg}" ]] && load_avg="-"
+
+    vm_out="$(vm_stat 2>/dev/null)"
+    page_size="$(printf '%s\n' "$vm_out" | awk '/page size of/ {gsub("\\.","",$8); print $8}')"
+    active="$(printf '%s\n' "$vm_out" | awk '/Pages active/ {gsub("\\.","",$3); print $3}')"
+    wired="$(printf '%s\n' "$vm_out" | awk '/Pages wired down/ {gsub("\\.","",$4); print $4}')"
+    compressed="$(printf '%s\n' "$vm_out" | awk '/Pages occupied by compressor/ {gsub("\\.","",$5); print $5}')"
+
+    if [[ -n "$page_size" && -n "$active" && -n "$wired" && -n "$compressed" ]]; then
+      used_bytes=$(( (active + wired + compressed) * page_size ))
+      mem_used="$(awk "BEGIN {printf \"%.1f\", ${used_bytes}/1073741824}")"
+    else
+      mem_used="-"
+    fi
+
+    info=(
+      "${USER}@${host_short}"
+      "------------------------------"
+      "OS      : ${os_name} ${os_ver}"
+      "KERNEL  : ${kernel}"
+      "SHELL   : ${shell_name}"
+      "MODEL   : ${model}"
+      "CPU     : ${cpu_cores} cores (${cpu_arch})"
+      "LOAD    : ${load_avg}"
+      "MEMORY  : ${mem_used}/${mem_total} GB"
+      "TIME    : ${now}"
+    )
+  else
+    info=(
+      "obsighost"
+      "------------------------------"
+      "PROFILE : public-safe"
+      "OS      : ${os_name} ${os_ver}"
+      "SHELL   : ${shell_name}"
+      "CPU     : ${cpu_cores} cores (${cpu_arch})"
+      "MEMORY  : ${mem_public}"
+      "TIME    : ${now}"
+    )
+  fi
 
   logo_len=${#logo[@]}
   info_len=${#info[@]}
