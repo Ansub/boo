@@ -6,9 +6,9 @@ ObsiGhost is a polished Ghostty + Zsh + Oh My Posh setup inspired by Obsidian-li
 
 It includes:
 - Ghostty visual config (glass look, black background, tuned text/cursor)
-- ObsiGhost Oh My Posh theme (`obsighost.omp.json`)
+- ObsiGhost Oh My Posh themes (`obsidian`, `graphite`, `lunar`)
 - Neofetch-style startup dashboard for Ghostty
-- Purple command/builtin syntax highlight accents for zsh
+- Theme-aware command/builtin syntax highlight accents for zsh
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ obsighost status
 - `full`: shows `user@host`, kernel, model, and load.
 - `public`: hides identifying machine details for screenshots.
 - `obsighost theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`).
-- `obsighost theme <name>`: applies a preset to Ghostty text/palette colors.
+- `obsighost theme <name>`: applies terminal colors + prompt palette + shell accent colors.
 - `obsighost opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `obsighost opacity glass|solid`: quick presets (`0.92` / `1.00`).
 - `obsighost reload`: safe apply guidance (does not open windows or touch running sessions).
@@ -59,7 +59,13 @@ obsighost status
 
 Mode is persisted in `~/.config/obsighost/mode.zsh`, theme in `~/.config/obsighost/theme`.
 Theme/opacity commands auto-run `obsighost reload` after writing config.
+Theme accent state is stored in `~/.config/obsighost/theme.zsh`.
 When sourced via `shell/obsighost.zsh`, mode changes sync into the current shell session immediately.
+
+Theme intent:
+- `obsidian`: original ObsiGhost look with purple accents.
+- `graphite`: neutral-gray look with lighter violet accents.
+- `lunar`: cool blue-gray look with no purple accents.
 
 ## Reload Status
 
@@ -77,6 +83,7 @@ If reload is not working:
 
 - `configs/ghostty/config` - Ghostty config
 - `configs/ohmyposh/obsighost.omp.json` - prompt theme
+- `configs/ohmyposh/presets/*.omp.json` - prompt presets by theme
 - `bin/obsighost` - CLI for mode/theme/opacity/status
 - `shell/obsighost.zsh` - shell integration + startup panel
 - `scripts/install.sh` - installer

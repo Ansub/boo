@@ -3,8 +3,11 @@ set -euo pipefail
 
 MODE_FILE="${HOME}/.config/obsighost/mode.zsh"
 THEME_FILE="${HOME}/.config/obsighost/theme"
+THEME_ENV_FILE="${HOME}/.config/obsighost/theme.zsh"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
+OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/obsighost.omp.json"
+OMP_PRESET_DIR="${HOME}/.config/obsighost/ohmyposh"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
 UNAME_S="$(uname -s)"
@@ -26,7 +29,7 @@ Usage:
 
 Commands:
   mode       Show or set startup panel mode.
-  theme      List or apply theme presets.
+  theme      List or apply full terminal/prompt presets.
   opacity    Show or set Ghostty background opacity.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/opacity.
@@ -74,6 +77,120 @@ write_theme_file() {
   local theme="$1"
   mkdir -p "$(dirname "$THEME_FILE")"
   printf '%s\n' "$theme" > "$THEME_FILE"
+}
+
+theme_accent_color() {
+  local theme="$1"
+  case "$theme" in
+    obsidian) printf '#a882ff\n' ;;
+    graphite) printf '#b7a2ff\n' ;;
+    lunar) printf '#7cc6ff\n' ;;
+    *) printf '#a882ff\n' ;;
+  esac
+}
+
+theme_panel_rgb() {
+  local theme="$1"
+  case "$theme" in
+    obsidian) printf '168;130;255\n' ;;
+    graphite) printf '183;162;255\n' ;;
+    lunar) printf '124;198;255\n' ;;
+    *) printf '168;130;255\n' ;;
+  esac
+}
+
+write_theme_env_file() {
+  local theme="$1"
+  local accent panel
+  accent="$(theme_accent_color "$theme")"
+  panel="$(theme_panel_rgb "$theme")"
+
+  mkdir -p "$(dirname "$THEME_ENV_FILE")"
+  cat > "$THEME_ENV_FILE" <<EOF
+export OBSIGHOST_THEME="${theme}"
+export OBSIGHOST_ACCENT_COLOR="${accent}"
+export OBSIGHOST_PANEL_COLOR_RGB="${panel}"
+EOF
+}
+
+apply_prompt_theme() {
+  local theme="$1"
+  local preset="${OMP_PRESET_DIR}/${theme}.omp.json"
+  local tmp
+
+  local accent chip_cloud_bg go_fg az_fg gcp_fg tf_fg sysinfo_fg git_bg
+  case "$theme" in
+    obsidian)
+      accent="#a882ff"
+      chip_cloud_bg="#2f2450"
+      go_fg="#c5adff"
+      az_fg="#a882ff"
+      gcp_fg="#b79cff"
+      tf_fg="#c4b5fd"
+      sysinfo_fg="#cab6ff"
+      git_bg="#3f2d59"
+      ;;
+    graphite)
+      accent="#b7a2ff"
+      chip_cloud_bg="#2b253f"
+      go_fg="#cdbdff"
+      az_fg="#b7a2ff"
+      gcp_fg="#c7b7ff"
+      tf_fg="#d2c6ff"
+      sysinfo_fg="#cfbeff"
+      git_bg="#3b2f52"
+      ;;
+    lunar)
+      accent="#7cc6ff"
+      chip_cloud_bg="#1f2d40"
+      go_fg="#90d5ff"
+      az_fg="#7cc6ff"
+      gcp_fg="#8ed4ff"
+      tf_fg="#9ad9ff"
+      sysinfo_fg="#a3deff"
+      git_bg="#2a3e57"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  # Prefer in-place patching to preserve any user prompt customizations.
+  if [[ -f "$OMP_ACTIVE_CONFIG" ]] && command -v jq >/dev/null 2>&1; then
+    tmp="$(mktemp)"
+    jq \
+      --arg accent "$accent" \
+      --arg chip_cloud_bg "$chip_cloud_bg" \
+      --arg go_fg "$go_fg" \
+      --arg az_fg "$az_fg" \
+      --arg gcp_fg "$gcp_fg" \
+      --arg tf_fg "$tf_fg" \
+      --arg sysinfo_fg "$sysinfo_fg" \
+      --arg git_bg "$git_bg" \
+      '
+      .palette.accent = $accent
+      | .palette.chip_cloud_bg = $chip_cloud_bg
+      | (.blocks[].segments[] | select(.type=="go")).foreground = $go_fg
+      | (.blocks[].segments[] | select(.type=="az")).foreground = $az_fg
+      | (.blocks[].segments[] | select(.type=="gcp")).foreground = $gcp_fg
+      | (.blocks[].segments[] | select(.type=="terraform")).foreground = $tf_fg
+      | (.blocks[].segments[] | select(.type=="sysinfo")).foreground = $sysinfo_fg
+      | (.blocks[].segments[] | select(.type=="git").background_templates[1]) = $git_bg
+      ' \
+      "$OMP_ACTIVE_CONFIG" > "$tmp"
+    mv "$tmp" "$OMP_ACTIVE_CONFIG"
+    return 0
+  fi
+
+  if [[ -f "$preset" ]]; then
+    mkdir -p "$(dirname "$OMP_ACTIVE_CONFIG")"
+    cp "$preset" "$OMP_ACTIVE_CONFIG"
+    return 0
+  fi
+
+  printf 'Prompt preset not found: %s\n' "$preset" >&2
+  printf 'Run installer to install theme presets.\n' >&2
+  return 1
 }
 
 collect_ghostty_targets() {
@@ -186,7 +303,7 @@ palette = 1=#5f6f92
 palette = 2=#6f86aa
 palette = 3=#8c9ec0
 palette = 4=#7891b7
-palette = 5=#a882ff
+palette = 5=#7cc6ff
 palette = 6=#7ca9bb
 palette = 7=#ced8e8
 palette = 8=#1f2938
@@ -194,7 +311,7 @@ palette = 9=#7085ab
 palette = 10=#83a0c2
 palette = 11=#9fb4d0
 palette = 12=#8ea8cc
-palette = 13=#b89eff
+palette = 13=#9edbff
 palette = 14=#95c3cf
 palette = 15=#eff4ff
 EOF
@@ -478,6 +595,8 @@ apply_theme() {
     replace_palette_lines "$file" "$theme"
   done
 
+  apply_prompt_theme "$theme" || true
+  write_theme_env_file "$theme"
   write_theme_file "$theme"
 }
 
@@ -519,9 +638,9 @@ cmd_theme() {
     list)
       cat <<'EOF'
 Available themes:
-  obsidian  - Original ObsiGhost palette
+  obsidian  - Original ObsiGhost palette + purple accents
   graphite  - Neutral gray + violet accents
-  lunar     - Cool blue-gray + violet accents
+  lunar     - Cool blue-gray, no purple accents
 EOF
       ;;
     set)
@@ -531,11 +650,15 @@ EOF
       fi
       apply_theme "$theme"
       printf 'ObsiGhost theme set to: %s\n' "$theme"
+      printf 'Prompt + syntax accents updated.\n'
+      printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
       cmd_reload || true
       ;;
     obsidian|graphite|lunar)
       apply_theme "$action"
       printf 'ObsiGhost theme set to: %s\n' "$action"
+      printf 'Prompt + syntax accents updated.\n'
+      printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
       cmd_reload || true
       ;;
     *)
@@ -567,9 +690,13 @@ cmd_opacity() {
 cmd_status() {
   local mode
   mode="$(read_mode)"
+  local theme accent
+  theme="$(read_theme_file)"
+  accent="$(theme_accent_color "$theme")"
   collect_ghostty_targets
   printf 'mode: %s\n' "$mode"
-  printf 'theme: %s\n' "$(read_theme_file)"
+  printf 'theme: %s\n' "$theme"
+  printf 'accent: %s\n' "$accent"
   printf 'opacity: %s\n' "$(current_opacity)"
   printf 'mode_file: %s\n' "$MODE_FILE"
   if [[ -f "$MODE_FILE" ]]; then

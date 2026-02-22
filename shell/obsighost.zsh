@@ -12,18 +12,44 @@ if [[ -f "$HOME/.config/obsighost/mode.zsh" ]]; then
   source "$HOME/.config/obsighost/mode.zsh"
 fi
 
+# Optional theme accents persisted by `obsighost theme`.
+if [[ -f "$HOME/.config/obsighost/theme.zsh" ]]; then
+  source "$HOME/.config/obsighost/theme.zsh"
+fi
+
+obsighost_apply_highlight_colors() {
+  local accent="${OBSIGHOST_ACCENT_COLOR:-#a882ff}"
+  if [[ -n ${ZSH_HIGHLIGHT_STYLES+x} ]]; then
+    ZSH_HIGHLIGHT_STYLES[command]="fg=${accent}"
+    ZSH_HIGHLIGHT_STYLES[builtin]="fg=${accent}"
+    ZSH_HIGHLIGHT_STYLES[function]="fg=${accent}"
+    ZSH_HIGHLIGHT_STYLES[alias]="fg=${accent}"
+  fi
+}
+
 # Wrapper so mode changes are reflected in the current shell immediately.
 if ! typeset -f obsighost >/dev/null 2>&1; then
   obsighost() {
-    if ! command -v obsighost >/dev/null 2>&1; then
+    if ! whence -p obsighost >/dev/null 2>&1; then
       printf 'obsighost CLI not found. Install it, then run: obsighost <command>\n' >&2
       return 1
     fi
 
     command obsighost "$@"
     local rc=$?
-    if [[ $rc -eq 0 && "${1:-}" == "mode" && -f "$HOME/.config/obsighost/mode.zsh" ]]; then
-      source "$HOME/.config/obsighost/mode.zsh"
+    if [[ $rc -eq 0 ]]; then
+      if [[ "${1:-}" == "mode" && -f "$HOME/.config/obsighost/mode.zsh" ]]; then
+        source "$HOME/.config/obsighost/mode.zsh"
+      fi
+      if [[ "${1:-}" == "theme" ]]; then
+        if [[ -f "$HOME/.config/obsighost/theme.zsh" ]]; then
+          source "$HOME/.config/obsighost/theme.zsh"
+        fi
+        if [[ "$TERM_PROGRAM" != "Apple_Terminal" ]] && command -v oh-my-posh >/dev/null 2>&1; then
+          eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/obsighost.omp.json)"
+        fi
+        obsighost_apply_highlight_colors
+      fi
     fi
     return $rc
   }
@@ -39,7 +65,8 @@ obsighost-mode() {
 }
 
 show_obsighost_startup_panel() {
-  local purple='\033[38;2;168;130;255m'
+  local panel_rgb="${OBSIGHOST_PANEL_COLOR_RGB:-168;130;255}"
+  local purple="\033[38;2;${panel_rgb}m"
   local dim='\033[38;2;148;163;184m'
   local reset='\033[0m'
   local now shell_name os_name os_ver cpu_cores cpu_arch total_bytes mem_total mem_public
@@ -161,9 +188,4 @@ if [[ -o interactive && "$TERM_PROGRAM" == "ghostty" && "${SHLVL:-1}" == "1" && 
 fi
 
 # Purple syntax highlighting accents.
-if [[ -n ${ZSH_HIGHLIGHT_STYLES+x} ]]; then
-  ZSH_HIGHLIGHT_STYLES[command]='fg=#a882ff'
-  ZSH_HIGHLIGHT_STYLES[builtin]='fg=#a882ff'
-  ZSH_HIGHLIGHT_STYLES[function]='fg=#a882ff'
-  ZSH_HIGHLIGHT_STYLES[alias]='fg=#a882ff'
-fi
+obsighost_apply_highlight_colors

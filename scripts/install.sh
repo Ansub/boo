@@ -28,11 +28,24 @@ if [[ -f "$MAC_GHOSTTY" ]]; then
 fi
 
 backup_file "$HOME/.config/ohmyposh/obsighost.omp.json"
-cp "$REPO_DIR/configs/ohmyposh/obsighost.omp.json" "$HOME/.config/ohmyposh/obsighost.omp.json"
+cp "$REPO_DIR/configs/ohmyposh/presets/obsidian.omp.json" "$HOME/.config/ohmyposh/obsighost.omp.json"
 echo "Installed prompt theme -> ~/.config/ohmyposh/obsighost.omp.json"
+
+mkdir -p "$HOME/.config/obsighost/ohmyposh"
+cp "$REPO_DIR"/configs/ohmyposh/presets/*.omp.json "$HOME/.config/obsighost/ohmyposh/"
+echo "Installed prompt presets -> ~/.config/obsighost/ohmyposh/"
 
 cp "$REPO_DIR/shell/obsighost.zsh" "$HOME/.config/obsighost/obsighost.zsh"
 echo "Installed shell snippet -> ~/.config/obsighost/obsighost.zsh"
+
+if [[ ! -f "$HOME/.config/obsighost/theme.zsh" ]]; then
+  cat > "$HOME/.config/obsighost/theme.zsh" <<'THEMEBLOCK'
+export OBSIGHOST_THEME="obsidian"
+export OBSIGHOST_ACCENT_COLOR="#a882ff"
+export OBSIGHOST_PANEL_COLOR_RGB="168;130;255"
+THEMEBLOCK
+  echo "Initialized theme accents -> ~/.config/obsighost/theme.zsh"
+fi
 
 backup_file "$HOME/.local/bin/obsighost"
 cp "$REPO_DIR/bin/obsighost" "$HOME/.local/bin/obsighost"
