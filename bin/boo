@@ -230,7 +230,7 @@ print_color_swatch_line() {
   rgb="$(hex_to_rgb "$hex")" || return 1
 
   printf '  %-9s ' "$label"
-  printf '\033[48;2;%sm████\033[0m ' "$rgb"
+  printf '\033[38;2;%s;48;2;%sm████\033[0m ' "$rgb" "$rgb"
   printf '\033[38;2;%sm%s\033[0m\n' "$rgb" "$hex"
 }
 
@@ -255,7 +255,7 @@ print_preview_all_row() {
   while IFS= read -r line; do
     value="${line#*=}"
     rgb="$(hex_to_rgb "$value")" || return 1
-    printf '\033[48;2;%sm████\033[0m ' "$rgb"
+    printf '\033[38;2;%s;48;2;%sm████\033[0m ' "$rgb" "$rgb"
   done < <(theme_core_colors "$theme")
   printf 'boo theme %s\n' "$theme"
 }
