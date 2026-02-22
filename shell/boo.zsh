@@ -133,47 +133,54 @@ boo_apply_prompt_backend() {
 }
 
 # Wrapper so mode/theme/prompt changes are reflected in the current shell immediately.
-if ! typeset -f boo >/dev/null 2>&1; then
-  boo() {
-    if ! whence -p boo >/dev/null 2>&1; then
-      printf 'boo CLI not found. Install it, then run: boo <command>\n' >&2
-      return 1
-    fi
+boo() {
+  if ! whence -p boo >/dev/null 2>&1; then
+    printf 'boo CLI not found. Install it, then run: boo <command>\n' >&2
+    return 1
+  fi
 
-    BOO_SHELL_WRAPPER=1 command boo "$@"
-    local rc=$?
-    if [[ $rc -ne 0 ]]; then
-      return $rc
-    fi
+  BOO_SHELL_WRAPPER=1 command boo "$@"
+  local rc=$?
+  if [[ $rc -ne 0 ]]; then
+    return $rc
+  fi
 
-    case "${1:-}" in
-      mode)
-        if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
-          source "$HOME/.config/boo/mode.zsh"
-        fi
-        ;;
-      prompt)
-        boo_apply_prompt_backend
-        ;;
-      theme|obsidian|graphite|lunar|crimson|matrix)
-        if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
-          source "$HOME/.config/boo/theme.zsh"
-        fi
-        boo_apply_prompt_backend
-        boo_apply_highlight_colors
-        ;;
-      splash)
-        if [[ -f "$BOO_SPLASH_FILE" ]]; then
-          source "$BOO_SPLASH_FILE"
-        fi
-        ;;
-      *)
-        ;;
-    esac
+  case "${1:-}" in
+    mode)
+      if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
+        source "$HOME/.config/boo/mode.zsh"
+      fi
+      ;;
+    prompt)
+      boo_apply_prompt_backend
+      ;;
+    theme|obsidian|graphite|lunar|crimson|matrix)
+      if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
+        source "$HOME/.config/boo/theme.zsh"
+      fi
+      boo_apply_prompt_backend
+      boo_apply_highlight_colors
+      ;;
+    splash)
+      if [[ -f "$BOO_SPLASH_FILE" ]]; then
+        source "$BOO_SPLASH_FILE"
+      fi
+      case "${2:-}" in
+        apple|ghost|skull|cat|minimal|boo|custom|reset|none)
+          if [[ -o interactive ]]; then
+            show_boo_startup_panel
+          fi
+          ;;
+        *)
+          ;;
+      esac
+      ;;
+    *)
+      ;;
+  esac
 
-    return 0
-  }
-fi
+  return 0
+}
 
 boo-mode() {
   if command -v boo >/dev/null 2>&1; then
