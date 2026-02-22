@@ -38,6 +38,10 @@ echo "Installed prompt presets -> ~/.config/boo/ohmyposh/"
 cp "$REPO_DIR/shell/boo.zsh" "$HOME/.config/boo/boo.zsh"
 echo "Installed shell snippet -> ~/.config/boo/boo.zsh"
 
+mkdir -p "$HOME/.config/boo/art"
+cp "$REPO_DIR"/art/*.txt "$HOME/.config/boo/art/"
+echo "Installed splash art -> ~/.config/boo/art/"
+
 if [[ ! -f "$HOME/.config/boo/theme.zsh" ]]; then
   cat > "$HOME/.config/boo/theme.zsh" <<'THEMEBLOCK'
 export BOO_THEME="obsidian"

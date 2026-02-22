@@ -5,6 +5,10 @@ MODE_FILE="${HOME}/.config/boo/mode.zsh"
 THEME_FILE="${HOME}/.config/boo/theme"
 THEME_ENV_FILE="${HOME}/.config/boo/theme.zsh"
 PROMPT_FILE="${HOME}/.config/boo/prompt"
+SPLASH_FILE="${HOME}/.config/boo/splash.zsh"
+CUSTOM_SPLASH_FILE="${HOME}/.config/boo/custom-splash.txt"
+BUILTIN_ART_DIR="${HOME}/.config/boo/art"
+DEFAULT_SPLASH="apple"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
@@ -27,6 +31,7 @@ Usage:
   boo theme [list|set <name>|<name>]
   boo opacity [value|glass|solid]
   boo preview [<theme>|all] [--plain]
+  boo splash [list|<name>|custom <file>|none|reset]
   boo reload [--unsafe]
   boo status
   boo help
@@ -37,6 +42,7 @@ Commands:
   theme      List or apply full terminal/prompt presets.
   opacity    Show or set Ghostty background opacity.
   preview    Preview one theme or all themes (ANSI swatches or plain hex).
+  splash     Configure startup splash art (built-in/custom/none/reset).
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
@@ -105,6 +111,45 @@ write_prompt_backend() {
   local backend="$1"
   mkdir -p "$(dirname "$PROMPT_FILE")"
   printf '%s\n' "$backend" > "$PROMPT_FILE"
+}
+
+read_splash_name() {
+  local splash
+  if [[ -f "$SPLASH_FILE" ]]; then
+    splash="$(grep -E '^export BOO_SPLASH=' "$SPLASH_FILE" | head -n1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '[:space:]')"
+    if [[ -n "$splash" ]]; then
+      printf '%s\n' "$splash"
+      return
+    fi
+  fi
+  printf '%s\n' "$DEFAULT_SPLASH"
+}
+
+write_splash_name() {
+  local splash="$1"
+  mkdir -p "$(dirname "$SPLASH_FILE")"
+  printf 'export BOO_SPLASH="%s"\n' "$splash" > "$SPLASH_FILE"
+}
+
+list_splash_names() {
+  printf '%s\n' apple ghost skull cat minimal boo
+}
+
+print_splash_preview() {
+  local splash="$1"
+  local source_file="${BUILTIN_ART_DIR}/${splash}.txt"
+
+  if [[ "$splash" == "minimal" ]]; then
+    printf '  (no ASCII art, info panel only)\n'
+    return
+  fi
+
+  if [[ -f "$source_file" ]]; then
+    head -n 3 "$source_file" | sed 's/^/  /'
+    return
+  fi
+
+  printf '  (preview unavailable: %s)\n' "$source_file"
 }
 
 effective_prompt_backend() {
@@ -1069,6 +1114,62 @@ cmd_preview() {
   esac
 }
 
+cmd_splash() {
+  local action="${1:-}"
+  local arg="${2:-}"
+  local splash
+
+  case "$action" in
+    ''|show|status)
+      splash="$(read_splash_name)"
+      printf 'Current splash: %s\n' "$splash"
+      printf 'Usage: boo splash [list|<name>|custom <file>|none|reset]\n'
+      ;;
+    list)
+      printf 'Available splash art:\n'
+      while IFS= read -r splash; do
+        printf '\n- %s\n' "$splash"
+        print_splash_preview "$splash"
+      done < <(list_splash_names)
+      ;;
+    custom)
+      if [[ -z "$arg" ]]; then
+        printf 'Usage: boo splash custom <file>\n' >&2
+        exit 1
+      fi
+      if [[ ! -f "$arg" ]]; then
+        printf 'Custom splash file not found: %s\n' "$arg" >&2
+        exit 1
+      fi
+      mkdir -p "$(dirname "$CUSTOM_SPLASH_FILE")"
+      cp "$arg" "$CUSTOM_SPLASH_FILE"
+      write_splash_name "custom"
+      printf 'Splash set to custom: %s\n' "$CUSTOM_SPLASH_FILE"
+      print_shell_apply_hint
+      ;;
+    none)
+      write_splash_name "none"
+      printf 'Startup panel disabled.\n'
+      print_shell_apply_hint
+      ;;
+    reset)
+      write_splash_name "$DEFAULT_SPLASH"
+      printf 'Splash reset to default: %s\n' "$DEFAULT_SPLASH"
+      print_shell_apply_hint
+      ;;
+    apple|ghost|skull|cat|minimal|boo)
+      write_splash_name "$action"
+      printf 'Splash set to: %s\n' "$action"
+      print_shell_apply_hint
+      ;;
+    *)
+      printf 'Invalid splash option: %s\n' "$action" >&2
+      printf 'Usage: boo splash [list|<name>|custom <file>|none|reset]\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
 cmd_status() {
   local mode
   mode="$(read_mode)"
@@ -1081,6 +1182,7 @@ cmd_status() {
   printf 'accent: %s\n' "$accent"
   printf 'prompt_backend: %s\n' "$(read_prompt_backend)"
   printf 'prompt_backend_effective: %s\n' "$(effective_prompt_backend)"
+  printf 'splash: %s\n' "$(read_splash_name)"
   printf 'opacity: %s\n' "$(current_opacity)"
   printf 'mode_file: %s\n' "$MODE_FILE"
   if [[ -f "$MODE_FILE" ]]; then
@@ -1129,6 +1231,10 @@ case "$subcommand" in
   preview)
     shift || true
     cmd_preview "$@"
+    ;;
+  splash)
+    shift || true
+    cmd_splash "${1:-}" "${2:-}"
     ;;
   status)
     cmd_status
