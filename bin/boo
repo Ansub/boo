@@ -115,6 +115,14 @@ effective_prompt_backend() {
   printf '%s\n' "$configured"
 }
 
+print_prompt_apply_hint() {
+  if [[ "${BOO_SHELL_WRAPPER:-0}" == "1" ]]; then
+    printf 'Applied in current shell.\n'
+  else
+    printf 'To apply now in this shell, run: exec zsh\n'
+  fi
+}
+
 theme_accent_color() {
   local theme="$1"
   case "$theme" in
@@ -777,7 +785,7 @@ EOF
           if [[ "$backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
             printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
           fi
-          printf 'Apply now: source ~/.zshrc\n'
+          print_prompt_apply_hint
           ;;
         *)
           printf 'Invalid prompt backend: %s\n' "$backend" >&2
@@ -792,7 +800,7 @@ EOF
       if [[ "$action" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
         printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
       fi
-      printf 'Apply now: source ~/.zshrc\n'
+      print_prompt_apply_hint
       ;;
     *)
       printf 'Invalid prompt command: %s\n' "$action" >&2
@@ -860,7 +868,7 @@ cmd_opacity() {
       resolved="$(resolve_opacity "$arg")"
       set_opacity_value "$resolved"
       printf 'Background opacity set to: %s\n' "$resolved"
-      cmd_reload || true
+      cmd_reload --unsafe || true
       ;;
   esac
 }

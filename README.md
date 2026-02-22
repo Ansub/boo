@@ -68,7 +68,8 @@ boo status
 - `boo status` prints mode, theme, prompt backend, opacity, and active config files.
 
 Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, and prompt backend in `~/.config/boo/prompt`.
-Theme/opacity commands auto-run `boo reload` after writing config.
+Theme commands auto-run safe `boo reload`.
+Opacity commands auto-run `boo reload --unsafe` for immediate apply attempts.
 Theme accent state is stored in `~/.config/boo/theme.zsh`.
 When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
 
@@ -76,6 +77,8 @@ Prompt backend behavior:
 - `native`: zero dependency zsh prompt.
 - `omp`: uses `oh-my-posh` when installed.
 - If `omp` is configured but `oh-my-posh` is missing, Boo falls back to `native`.
+- If run through Boo shell integration, `boo prompt set ...` applies instantly.
+- If run as plain binary, use `exec zsh` to refresh the current shell.
 
 Theme intent:
 - `obsidian`: original Boo look with purple accents.

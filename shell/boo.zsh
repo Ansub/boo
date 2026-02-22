@@ -131,7 +131,7 @@ if ! typeset -f boo >/dev/null 2>&1; then
       return 1
     fi
 
-    command boo "$@"
+    BOO_SHELL_WRAPPER=1 command boo "$@"
     local rc=$?
     if [[ $rc -ne 0 ]]; then
       return $rc
