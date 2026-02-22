@@ -41,6 +41,7 @@ obsighost theme list
 obsighost theme graphite
 obsighost opacity 0.92
 obsighost opacity glass
+obsighost reload
 obsighost status
 ```
 
@@ -50,10 +51,12 @@ obsighost status
 - `obsighost theme <name>`: applies a preset to Ghostty text/palette colors.
 - `obsighost opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `obsighost opacity glass|solid`: quick presets (`0.92` / `1.00`).
+- `obsighost reload`: best-effort apply (reload running Ghostty, else open new instance).
 - `obsighost mode` prints current mode.
 - `obsighost status` prints mode, theme, opacity, and active config files.
 
 Mode is persisted in `~/.config/obsighost/mode.zsh`, theme in `~/.config/obsighost/theme`.
+Theme/opacity commands automatically run `obsighost reload` after writing config.
 
 ## Repo Structure
 
@@ -68,6 +71,7 @@ Mode is persisted in `~/.config/obsighost/mode.zsh`, theme in `~/.config/obsigho
 - Installer creates timestamped backups of replaced files.
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/obsighost/obsighost.zsh`.
 - Legacy alias `obsighost-mode` is still available and forwards to `obsighost mode`.
+- To skip auto-reload during scripting, run commands with `OBSIGHOST_NO_AUTO_APPLY=1`.
 
 ## License
 

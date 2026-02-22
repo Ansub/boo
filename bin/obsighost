@@ -18,6 +18,7 @@ Usage:
   obsighost mode [full|public]
   obsighost theme [list|set <name>|<name>]
   obsighost opacity [value|glass|solid]
+  obsighost reload
   obsighost status
   obsighost help
 
@@ -25,6 +26,7 @@ Commands:
   mode       Show or set startup panel mode.
   theme      List or apply theme presets.
   opacity    Show or set Ghostty background opacity.
+  reload     Best-effort reload (or open new Ghostty window).
   status     Print current mode/theme/opacity.
   help       Show this help message.
 EOF
@@ -240,6 +242,42 @@ set_opacity_value() {
   done
 }
 
+cmd_reload() {
+  local applied=0
+  local ghostty_running=0
+
+  if [[ "${OBSIGHOST_NO_AUTO_APPLY:-0}" == "1" ]]; then
+    printf 'Auto-apply skipped (OBSIGHOST_NO_AUTO_APPLY=1).\n'
+    return 0
+  fi
+
+  if pgrep -x Ghostty >/dev/null 2>&1; then
+    ghostty_running=1
+  fi
+
+  if [[ "$(uname -s)" == "Darwin" ]] && (( ghostty_running == 1 )) && command -v osascript >/dev/null 2>&1; then
+    if osascript \
+      -e 'tell application "Ghostty" to activate' \
+      -e 'tell application "System Events" to keystroke "," using {command down, shift down}' \
+      >/dev/null 2>&1; then
+      printf 'Triggered Ghostty config reload.\n'
+      applied=1
+    fi
+  fi
+
+  if (( applied == 0 )) && [[ "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1; then
+    if open -na Ghostty.app >/dev/null 2>&1; then
+      printf 'Opened a new Ghostty instance to apply updated config.\n'
+      applied=1
+    fi
+  fi
+
+  if (( applied == 0 )); then
+    printf 'Auto-apply unavailable. Reload Ghostty config or open a new window.\n'
+    return 1
+  fi
+}
+
 resolve_opacity() {
   local input="$1"
   local resolved
@@ -379,12 +417,12 @@ EOF
       fi
       apply_theme "$theme"
       printf 'ObsiGhost theme set to: %s\n' "$theme"
-      printf 'Reload Ghostty config or open a new window.\n'
+      cmd_reload || true
       ;;
     obsidian|graphite|lunar)
       apply_theme "$action"
       printf 'ObsiGhost theme set to: %s\n' "$action"
-      printf 'Reload Ghostty config or open a new window.\n'
+      cmd_reload || true
       ;;
     *)
       printf 'Invalid theme command: %s\n' "$action" >&2
@@ -407,7 +445,7 @@ cmd_opacity() {
       resolved="$(resolve_opacity "$arg")"
       set_opacity_value "$resolved"
       printf 'Background opacity set to: %s\n' "$resolved"
-      printf 'Reload Ghostty config or open a new window.\n'
+      cmd_reload || true
       ;;
   esac
 }
@@ -451,6 +489,9 @@ case "$subcommand" in
   opacity)
     shift || true
     cmd_opacity "${1:-}"
+    ;;
+  reload)
+    cmd_reload
     ;;
   status)
     cmd_status
