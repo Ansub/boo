@@ -143,7 +143,7 @@ write_splash_name() {
 }
 
 list_splash_names() {
-  printf '%s\n' apple boo minimal
+  printf '%s\n' apple boo saturn minimal
 }
 
 print_splash_preview() {
@@ -1402,7 +1402,7 @@ cmd_splash() {
       printf 'Splash reset to default: %s\n' "$DEFAULT_SPLASH"
       print_shell_apply_hint
       ;;
-    apple|boo|minimal)
+    apple|boo|saturn|minimal)
       write_splash_name "$action"
       printf 'Splash set to: %s\n' "$action"
       print_shell_apply_hint

@@ -166,7 +166,7 @@ boo() {
         source "$BOO_SPLASH_FILE"
       fi
       case "${2:-}" in
-        apple|boo|minimal|custom|reset|none)
+        apple|boo|saturn|minimal|custom|reset|none)
           if [[ -o interactive ]]; then
             show_boo_startup_panel
           fi
@@ -223,7 +223,7 @@ boo_load_splash_art() {
     custom)
       source_file="$BOO_CUSTOM_SPLASH_FILE"
       ;;
-    apple|boo|minimal)
+    apple|boo|saturn|minimal)
       source_file="$BOO_ART_DIR/${splash}.txt"
       ;;
     *)
@@ -255,7 +255,7 @@ show_boo_startup_panel() {
   local mem_used model splash_name
   local -a logo info
   BOO_SPLASH_DISABLED=0
-  local i max left_col right_col
+  local i max left_col right_col left_width logo_line
   local logo_len info_len logo_start info_start left_idx right_idx
 
   now="$(date '+%a %b %d, %I:%M %p')"
@@ -328,6 +328,15 @@ show_boo_startup_panel() {
   logo_len=${#logo[@]}
   info_len=${#info[@]}
   max=$(( logo_len > info_len ? logo_len : info_len ))
+  left_width=30
+  for logo_line in "${logo[@]}"; do
+    if (( ${#logo_line} > left_width )); then
+      left_width=${#logo_line}
+    fi
+  done
+  if (( left_width > 52 )); then
+    left_width=52
+  fi
   logo_start=$(( (max - logo_len) / 2 + 1 ))
   info_start=$(( (max - info_len) / 2 + 1 ))
 
@@ -345,7 +354,7 @@ show_boo_startup_panel() {
       right_col="${info[right_idx]}"
     fi
 
-    printf '%b%-30s%b  %b%s%b\n' "$purple" "$left_col" "$reset" "$dim" "$right_col" "$reset"
+    printf '%b%-*s%b  %b%s%b\n' "$purple" "$left_width" "$left_col" "$reset" "$dim" "$right_col" "$reset"
   done
   printf '\n'
 }

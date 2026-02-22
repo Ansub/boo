@@ -54,6 +54,7 @@ boo preview all
 boo preview all --plain
 boo splash list
 boo splash boo
+boo splash saturn
 boo splash custom ~/my-art.txt
 boo splash none
 boo splash reset
@@ -76,7 +77,7 @@ boo status
 - `boo preview all`: prints swatches for all themes for quick comparison.
 - `boo preview [<theme>|all] --plain`: prints plain hex values (no ANSI swatches).
 - `boo splash list`: lists available startup art with tiny previews.
-- `boo splash <name>`: picks built-in art (`apple`, `boo`, `minimal`).
+- `boo splash <name>`: picks built-in art (`apple`, `boo`, `saturn`, `minimal`).
 - `boo splash custom <file>`: copies your file to `~/.config/boo/custom-splash.txt` and uses it.
 - `boo splash none`: disables the startup panel completely.
 - `boo splash reset`: restores default splash (`apple`).
