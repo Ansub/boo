@@ -32,7 +32,7 @@ show_obsighost_startup_panel() {
     mem_total="-"
     mem_public="-"
   fi
-  show_private="${OBSIGHOST_SHOW_PRIVATE:-0}"
+  show_private="${OBSIGHOST_SHOW_PRIVATE:-1}"
 
   logo=(
     "                    'c."
