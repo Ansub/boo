@@ -88,7 +88,7 @@ boo_apply_native_prompt() {
   add-zsh-hook precmd boo_native_precmd
   boo_native_precmd
 
-  PROMPT='%F{245}╭─%f%F{${BOO_ACCENT_COLOR:-#a882ff}}%f %F{252}%n%f %F{245}in%f %F{111}%~%f${BOO_PROMPT_GIT_SEGMENT}\n%F{245}╰─❯%f '
+  PROMPT='%F{245}╭─%f%F{${BOO_ACCENT_COLOR:-#a882ff}}%f %F{252}%n%f %F{245}in%f %F{111}%~%f${BOO_PROMPT_GIT_SEGMENT}'$'\n''%F{245}╰─❯%f '
   RPROMPT='%(?..%F{196}✖ %?%f )%F{245}%D{%I:%M %p}%f'
 }
 
