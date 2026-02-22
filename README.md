@@ -29,6 +29,22 @@ source ~/.zshrc
 
 Then open a new Ghostty window.
 
+## Toggle Startup Info
+
+Default is full-info mode.
+
+```bash
+obsighost-mode full
+obsighost-mode public
+obsighost-mode
+```
+
+- `full`: shows `user@host`, kernel, model, and load.
+- `public`: hides identifying machine details for screenshots.
+- Running without arguments prints current mode.
+
+Mode is persisted in `~/.config/obsighost/mode.zsh`.
+
 ## Repo Structure
 
 - `configs/ghostty/config` - Ghostty config
@@ -40,7 +56,7 @@ Then open a new Ghostty window.
 
 - Installer creates timestamped backups of replaced files.
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/obsighost/obsighost.zsh`.
-- Startup dashboard shows full system details by default. For screenshot-safe mode, set `OBSIGHOST_SHOW_PRIVATE=0`.
+- `obsighost-mode` is available after you source your shell config.
 
 ## License
 
