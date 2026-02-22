@@ -166,7 +166,7 @@ boo() {
         source "$BOO_SPLASH_FILE"
       fi
       case "${2:-}" in
-        apple|ghost|skull|cat|minimal|boo|custom|reset|none)
+        apple|boo|minimal|custom|reset|none)
           if [[ -o interactive ]]; then
             show_boo_startup_panel
           fi
@@ -223,7 +223,7 @@ boo_load_splash_art() {
     custom)
       source_file="$BOO_CUSTOM_SPLASH_FILE"
       ;;
-    apple|ghost|skull|cat|minimal|boo)
+    apple|boo|minimal)
       source_file="$BOO_ART_DIR/${splash}.txt"
       ;;
     *)
