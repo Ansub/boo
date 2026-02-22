@@ -52,6 +52,11 @@ boo opacity glass
 boo preview obsidian
 boo preview all
 boo preview all --plain
+boo splash list
+boo splash ghost
+boo splash custom ~/my-art.txt
+boo splash none
+boo splash reset
 boo reload
 boo reload --unsafe
 boo status
@@ -68,15 +73,21 @@ boo status
 - `boo preview <theme>`: previews core theme colors with ANSI true-color swatches.
 - `boo preview all`: prints swatches for all themes for quick comparison.
 - `boo preview [<theme>|all] --plain`: prints plain hex values (no ANSI swatches).
+- `boo splash list`: lists available startup art with tiny previews.
+- `boo splash <name>`: picks built-in art (`apple`, `ghost`, `skull`, `cat`, `minimal`, `boo`).
+- `boo splash custom <file>`: copies your file to `~/.config/boo/custom-splash.txt` and uses it.
+- `boo splash none`: disables the startup panel completely.
+- `boo splash reset`: restores default splash (`apple`).
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `boo mode` prints current mode.
 - `boo status` prints mode, theme, prompt backend, opacity, and active config files.
 
-Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, and prompt backend in `~/.config/boo/prompt`.
+Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, prompt backend in `~/.config/boo/prompt`, and splash in `~/.config/boo/splash.zsh`.
 Theme commands auto-run safe `boo reload`.
 Opacity commands auto-run `boo reload --unsafe` for immediate apply attempts.
 Theme accent state is stored in `~/.config/boo/theme.zsh`.
+Built-in splash art files are installed to `~/.config/boo/art/`; custom splash files are copied to `~/.config/boo/custom-splash.txt`.
 When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
 
 Prompt backend behavior:
@@ -110,8 +121,9 @@ If reload is not working:
 - `configs/ghostty/config` - Ghostty config
 - `configs/ohmyposh/boo.omp.json` - prompt theme
 - `configs/ohmyposh/presets/*.omp.json` - prompt presets by theme
-- `bin/boo` - CLI for mode/theme/opacity/status
+- `bin/boo` - CLI for mode/theme/splash/opacity/status
 - `shell/boo.zsh` - shell integration + startup panel
+- `art/*.txt` - built-in startup ASCII art
 - `scripts/install.sh` - installer
 
 ## Notes

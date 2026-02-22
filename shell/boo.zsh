@@ -2,6 +2,10 @@
 
 BOO_PROMPT_FILE="$HOME/.config/boo/prompt"
 BOO_DEFAULT_PROMPT_BACKEND="native"
+BOO_SPLASH_FILE="$HOME/.config/boo/splash.zsh"
+BOO_CUSTOM_SPLASH_FILE="$HOME/.config/boo/custom-splash.txt"
+BOO_ART_DIR="$HOME/.config/boo/art"
+BOO_DEFAULT_SPLASH="apple"
 
 # Optional mode override persisted by `boo mode`.
 if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
@@ -11,6 +15,11 @@ fi
 # Optional theme accents persisted by `boo theme`.
 if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
   source "$HOME/.config/boo/theme.zsh"
+fi
+
+# Optional splash preference persisted by `boo splash`.
+if [[ -f "$BOO_SPLASH_FILE" ]]; then
+  source "$BOO_SPLASH_FILE"
 fi
 
 boo_read_prompt_backend() {
@@ -153,6 +162,11 @@ if ! typeset -f boo >/dev/null 2>&1; then
         boo_apply_prompt_backend
         boo_apply_highlight_colors
         ;;
+      splash)
+        if [[ -f "$BOO_SPLASH_FILE" ]]; then
+          source "$BOO_SPLASH_FILE"
+        fi
+        ;;
       *)
         ;;
     esac
@@ -179,6 +193,51 @@ boo-prompt() {
   fi
 }
 
+boo_read_splash_name() {
+  local splash="${BOO_SPLASH:-$BOO_DEFAULT_SPLASH}"
+  if [[ -f "$BOO_SPLASH_FILE" ]]; then
+    splash="$(grep -E '^export BOO_SPLASH=' "$BOO_SPLASH_FILE" | head -n1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '[:space:]')"
+  fi
+  [[ -n "$splash" ]] || splash="$BOO_DEFAULT_SPLASH"
+  printf '%s\n' "$splash"
+}
+
+boo_load_splash_art() {
+  local splash="$1"
+  local source_file
+  local -a art_lines
+
+  case "$splash" in
+    none)
+      BOO_SPLASH_DISABLED=1
+      logo=()
+      return 0
+      ;;
+    custom)
+      source_file="$BOO_CUSTOM_SPLASH_FILE"
+      ;;
+    apple|ghost|skull|cat|minimal|boo)
+      source_file="$BOO_ART_DIR/${splash}.txt"
+      ;;
+    *)
+      source_file="$BOO_ART_DIR/${BOO_DEFAULT_SPLASH}.txt"
+      ;;
+  esac
+
+  if [[ "$splash" == "minimal" ]]; then
+    logo=()
+    return 0
+  fi
+
+  if [[ -f "$source_file" ]]; then
+    art_lines=("${(@f)$(<"$source_file")}")
+    logo=("${art_lines[@]}")
+    return 0
+  fi
+
+  logo=("boo")
+}
+
 show_boo_startup_panel() {
   local panel_rgb="${BOO_PANEL_COLOR_RGB:-168;130;255}"
   local purple="\033[38;2;${panel_rgb}m"
@@ -186,8 +245,9 @@ show_boo_startup_panel() {
   local reset='\033[0m'
   local now shell_name os_name os_ver cpu_cores cpu_arch total_bytes mem_total mem_public
   local show_private host_short kernel load_avg vm_out page_size active wired compressed used_bytes
-  local mem_used model
+  local mem_used model splash_name
   local -a logo info
+  BOO_SPLASH_DISABLED=0
   local i max left_col right_col
   local logo_len info_len logo_start info_start left_idx right_idx
 
@@ -207,25 +267,11 @@ show_boo_startup_panel() {
   fi
   show_private="${BOO_SHOW_PRIVATE:-1}"
 
-  logo=(
-    "                    'c."
-    "                 ,xNMM."
-    "               .OMMMMo"
-    "               OMMM0,"
-    "     .;loddo:' loolloddol;."
-    "   cKMMMMMMMMMMNWMMMMMMMMMM0:"
-    " .KMMMMMMMMMMMMMMMMMMMMMMMWd."
-    " XMMMMMMMMMMMMMMMMMMMMMMMX."
-    ";MMMMMMMMMMMMMMMMMMMMMMMM:"
-    ":MMMMMMMMMMMMMMMMMMMMMMMM:"
-    ".MMMMMMMMMMMMMMMMMMMMMMMMX."
-    " kMMMMMMMMMMMMMMMMMMMMMMMMWd."
-    " .XMMMMMMMMMMMMMMMMMMMMMMMMMMk"
-    "  .XMMMMMMMMMMMMMMMMMMMMMMMMK."
-    "    kMMMMMMMMMMMMMMMMMMMMMMd"
-    "     ;KMMMMMMMWXXWMMMMMMMk."
-    "       .cooc,.    .,coo:."
-  )
+  splash_name="$(boo_read_splash_name)"
+  boo_load_splash_art "$splash_name"
+  if [[ "${BOO_SPLASH_DISABLED:-0}" == "1" ]]; then
+    return 0
+  fi
 
   if [[ "$show_private" == "1" ]]; then
     host_short="$(hostname -s 2>/dev/null || hostname)"
