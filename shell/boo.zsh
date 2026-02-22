@@ -51,11 +51,10 @@ boo_apply_highlight_colors() {
 
 boo_remove_omp_hooks() {
   if typeset -p precmd_functions >/dev/null 2>&1; then
-    precmd_functions=(${precmd_functions:#_omp_hook})
-    precmd_functions=(${precmd_functions:#_omp_deprecation_warning})
+    precmd_functions=(${precmd_functions:#_omp_*})
   fi
   if typeset -p preexec_functions >/dev/null 2>&1; then
-    preexec_functions=(${preexec_functions:#_omp_preexec})
+    preexec_functions=(${preexec_functions:#_omp_*})
   fi
 }
 
