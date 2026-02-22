@@ -49,6 +49,8 @@ boo theme crimson
 boo theme matrix
 boo opacity 0.92
 boo opacity glass
+boo preview obsidian
+boo preview all
 boo reload
 boo reload --unsafe
 boo status
@@ -62,6 +64,8 @@ boo status
 - `boo theme <name>`: applies terminal colors + prompt palette + shell accent colors.
 - `boo opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `boo opacity glass|solid`: quick presets (`0.92` / `1.00`).
+- `boo preview <theme>`: previews core theme colors with ANSI true-color swatches.
+- `boo preview all`: prints swatches for all themes for quick comparison.
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `boo mode` prints current mode.
