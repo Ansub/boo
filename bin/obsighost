@@ -2,6 +2,13 @@
 set -euo pipefail
 
 MODE_FILE="${HOME}/.config/obsighost/mode.zsh"
+THEME_FILE="${HOME}/.config/obsighost/theme"
+GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
+GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
+DEFAULT_OPACITY="0.92"
+DEFAULT_THEME="obsidian"
+
+ghostty_targets=()
 
 print_help() {
   cat <<'EOF'
@@ -9,13 +16,17 @@ ObsiGhost CLI
 
 Usage:
   obsighost mode [full|public]
+  obsighost theme [list|set <name>|<name>]
+  obsighost opacity [value|glass|solid]
   obsighost status
   obsighost help
 
 Commands:
-  mode      Show or set startup panel mode.
-  status    Print current mode and active config file.
-  help      Show this help message.
+  mode       Show or set startup panel mode.
+  theme      List or apply theme presets.
+  opacity    Show or set Ghostty background opacity.
+  status     Print current mode/theme/opacity.
+  help       Show this help message.
 EOF
 }
 
@@ -39,6 +50,283 @@ write_mode_file() {
   local value="$1"
   mkdir -p "$(dirname "$MODE_FILE")"
   printf 'export OBSIGHOST_SHOW_PRIVATE=%s\n' "$value" > "$MODE_FILE"
+}
+
+read_theme_file() {
+  local theme
+  if [[ -f "$THEME_FILE" ]]; then
+    theme="$(tr -d '[:space:]' < "$THEME_FILE")"
+    if [[ -n "$theme" ]]; then
+      printf '%s\n' "$theme"
+      return
+    fi
+  fi
+  printf '%s\n' "$DEFAULT_THEME"
+}
+
+write_theme_file() {
+  local theme="$1"
+  mkdir -p "$(dirname "$THEME_FILE")"
+  printf '%s\n' "$theme" > "$THEME_FILE"
+}
+
+collect_ghostty_targets() {
+  ghostty_targets=()
+
+  mkdir -p "$(dirname "$GHOSTTY_CONFIG_PRIMARY")"
+  if [[ ! -f "$GHOSTTY_CONFIG_PRIMARY" ]]; then
+    touch "$GHOSTTY_CONFIG_PRIMARY"
+  fi
+  ghostty_targets+=("$GHOSTTY_CONFIG_PRIMARY")
+
+  if [[ -f "$GHOSTTY_CONFIG_MAC" ]]; then
+    ghostty_targets+=("$GHOSTTY_CONFIG_MAC")
+  fi
+}
+
+upsert_key() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v key="$key" -v value="$value" '
+    BEGIN { re = "^[[:space:]]*" key "[[:space:]]*="; done = 0 }
+    $0 ~ re {
+      if (!done) {
+        print key " = " value
+        done = 1
+      }
+      next
+    }
+    { print }
+    END {
+      if (!done) {
+        print key " = " value
+      }
+    }
+  ' "$file" > "$tmp"
+
+  mv "$tmp" "$file"
+}
+
+theme_palette_lines() {
+  local theme="$1"
+  case "$theme" in
+    obsidian)
+      cat <<'EOF'
+palette = 0=#0b0f0b
+palette = 1=#7a3b3b
+palette = 2=#6fb56f
+palette = 3=#a9a062
+palette = 4=#5f7da3
+palette = 5=#8b76a8
+palette = 6=#5ea39a
+palette = 7=#a8bfa8
+palette = 8=#2a342a
+palette = 9=#b35757
+palette = 10=#8fdb8f
+palette = 11=#d1c97b
+palette = 12=#7ea4d1
+palette = 13=#ac93cb
+palette = 14=#7dc7be
+palette = 15=#d9ead9
+EOF
+      ;;
+    graphite)
+      cat <<'EOF'
+palette = 0=#0f1115
+palette = 1=#6e7a88
+palette = 2=#8493a5
+palette = 3=#9ba8b8
+palette = 4=#8f9fb3
+palette = 5=#a882ff
+palette = 6=#8caeb5
+palette = 7=#d7dde7
+palette = 8=#252a33
+palette = 9=#7f8ea1
+palette = 10=#97a8bd
+palette = 11=#b2becd
+palette = 12=#a2b2c8
+palette = 13=#bba2ff
+palette = 14=#a2c3c8
+palette = 15=#f2f5f9
+EOF
+      ;;
+    lunar)
+      cat <<'EOF'
+palette = 0=#0a0f18
+palette = 1=#5f6f92
+palette = 2=#6f86aa
+palette = 3=#8c9ec0
+palette = 4=#7891b7
+palette = 5=#a882ff
+palette = 6=#7ca9bb
+palette = 7=#ced8e8
+palette = 8=#1f2938
+palette = 9=#7085ab
+palette = 10=#83a0c2
+palette = 11=#9fb4d0
+palette = 12=#8ea8cc
+palette = 13=#b89eff
+palette = 14=#95c3cf
+palette = 15=#eff4ff
+EOF
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+replace_palette_lines() {
+  local file="$1"
+  local theme="$2"
+  local tmp palette_tmp
+
+  tmp="$(mktemp)"
+  palette_tmp="$(mktemp)"
+  theme_palette_lines "$theme" > "$palette_tmp"
+
+  awk -v palette_file="$palette_tmp" '
+    BEGIN { inserted = 0 }
+    /^[[:space:]]*palette[[:space:]]*=/ { next }
+    {
+      print
+      if (!inserted && $0 ~ /^[[:space:]]*selection-foreground[[:space:]]*=/) {
+        while ((getline line < palette_file) > 0) {
+          print line
+        }
+        close(palette_file)
+        inserted = 1
+      }
+    }
+    END {
+      if (!inserted) {
+        while ((getline line < palette_file) > 0) {
+          print line
+        }
+        close(palette_file)
+      }
+    }
+  ' "$file" > "$tmp"
+
+  mv "$tmp" "$file"
+  rm -f "$palette_tmp"
+}
+
+current_opacity() {
+  collect_ghostty_targets
+  local file line value
+  for file in "${ghostty_targets[@]}"; do
+    line="$(grep -m1 -E '^[[:space:]]*background-opacity[[:space:]]*=' "$file" || true)"
+    if [[ -n "$line" ]]; then
+      value="$(printf '%s\n' "$line" | sed -E 's/^[^=]+= *//; s/[[:space:]]+$//')"
+      printf '%s\n' "$value"
+      return
+    fi
+  done
+  printf '%s\n' "$DEFAULT_OPACITY"
+}
+
+set_opacity_value() {
+  local value="$1"
+  local file
+
+  collect_ghostty_targets
+  for file in "${ghostty_targets[@]}"; do
+    upsert_key "$file" "background-opacity" "$value"
+  done
+}
+
+resolve_opacity() {
+  local input="$1"
+  local resolved
+
+  case "$input" in
+    solid)
+      printf '1.00\n'
+      return
+      ;;
+    glass)
+      printf '0.92\n'
+      return
+      ;;
+    *)
+      ;;
+  esac
+
+  if [[ ! "$input" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]]; then
+    printf 'Invalid opacity: %s\n' "$input" >&2
+    printf 'Use a value between 0.30 and 1.00, or: glass, solid\n' >&2
+    exit 1
+  fi
+
+  resolved="$(awk -v n="$input" 'BEGIN {
+    if (n + 0 == n && n >= 0.30 && n <= 1.00) {
+      printf "%.2f", n
+      exit 0
+    }
+    exit 1
+  }')" || {
+    printf 'Invalid opacity: %s\n' "$input" >&2
+    printf 'Use a value between 0.30 and 1.00, or: glass, solid\n' >&2
+    exit 1
+  }
+
+  printf '%s\n' "$resolved"
+}
+
+apply_theme() {
+  local theme="$1"
+  local theme_name foreground cursor_color cursor_text selection_bg selection_fg
+  local file
+
+  case "$theme" in
+    obsidian)
+      theme_name="Phala Green Dark"
+      foreground="#d8dde5"
+      cursor_color="#e8ecf2"
+      cursor_text="#000000"
+      selection_bg="#262e38"
+      selection_fg="#f5f7fb"
+      ;;
+    graphite)
+      theme_name="Phala Green Dark"
+      foreground="#e6ebf2"
+      cursor_color="#f2f5fa"
+      cursor_text="#000000"
+      selection_bg="#323a47"
+      selection_fg="#ffffff"
+      ;;
+    lunar)
+      theme_name="Phala Green Dark"
+      foreground="#d9e2f2"
+      cursor_color="#f2f6ff"
+      cursor_text="#000000"
+      selection_bg="#243247"
+      selection_fg="#f8fbff"
+      ;;
+    *)
+      printf 'Invalid theme: %s\n' "$theme" >&2
+      printf 'Use: obsidian, graphite, lunar\n' >&2
+      exit 1
+      ;;
+  esac
+
+  collect_ghostty_targets
+  for file in "${ghostty_targets[@]}"; do
+    upsert_key "$file" "theme" "$theme_name"
+    upsert_key "$file" "foreground" "$foreground"
+    upsert_key "$file" "cursor-color" "$cursor_color"
+    upsert_key "$file" "cursor-text" "$cursor_text"
+    upsert_key "$file" "selection-background" "$selection_bg"
+    upsert_key "$file" "selection-foreground" "$selection_fg"
+    replace_palette_lines "$file" "$theme"
+  done
+
+  write_theme_file "$theme"
 }
 
 cmd_mode() {
@@ -67,16 +355,87 @@ cmd_mode() {
   esac
 }
 
+cmd_theme() {
+  local action="${1:-}"
+  local theme="${2:-}"
+
+  case "$action" in
+    '')
+      printf 'Current theme: %s\n' "$(read_theme_file)"
+      printf 'Usage: obsighost theme [list|set <name>|<name>]\n'
+      ;;
+    list)
+      cat <<'EOF'
+Available themes:
+  obsidian  - Original ObsiGhost palette
+  graphite  - Neutral gray + violet accents
+  lunar     - Cool blue-gray + violet accents
+EOF
+      ;;
+    set)
+      if [[ -z "$theme" ]]; then
+        printf 'Usage: obsighost theme set <obsidian|graphite|lunar>\n' >&2
+        exit 1
+      fi
+      apply_theme "$theme"
+      printf 'ObsiGhost theme set to: %s\n' "$theme"
+      printf 'Reload Ghostty config or open a new window.\n'
+      ;;
+    obsidian|graphite|lunar)
+      apply_theme "$action"
+      printf 'ObsiGhost theme set to: %s\n' "$action"
+      printf 'Reload Ghostty config or open a new window.\n'
+      ;;
+    *)
+      printf 'Invalid theme command: %s\n' "$action" >&2
+      printf 'Usage: obsighost theme [list|set <name>|<name>]\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
+cmd_opacity() {
+  local arg="${1:-}"
+  local resolved
+
+  case "$arg" in
+    '')
+      printf 'Current opacity: %s\n' "$(current_opacity)"
+      printf 'Usage: obsighost opacity [value|glass|solid]\n'
+      ;;
+    *)
+      resolved="$(resolve_opacity "$arg")"
+      set_opacity_value "$resolved"
+      printf 'Background opacity set to: %s\n' "$resolved"
+      printf 'Reload Ghostty config or open a new window.\n'
+      ;;
+  esac
+}
+
 cmd_status() {
   local mode
   mode="$(read_mode)"
+  collect_ghostty_targets
   printf 'mode: %s\n' "$mode"
+  printf 'theme: %s\n' "$(read_theme_file)"
+  printf 'opacity: %s\n' "$(current_opacity)"
   printf 'mode_file: %s\n' "$MODE_FILE"
   if [[ -f "$MODE_FILE" ]]; then
     printf 'mode_file_exists: yes\n'
   else
     printf 'mode_file_exists: no\n'
   fi
+  printf 'theme_file: %s\n' "$THEME_FILE"
+  if [[ -f "$THEME_FILE" ]]; then
+    printf 'theme_file_exists: yes\n'
+  else
+    printf 'theme_file_exists: no\n'
+  fi
+  printf 'ghostty_config_count: %s\n' "${#ghostty_targets[@]}"
+  local file
+  for file in "${ghostty_targets[@]}"; do
+    printf 'ghostty_config: %s\n' "$file"
+  done
 }
 
 subcommand="${1:-help}"
@@ -84,6 +443,14 @@ case "$subcommand" in
   mode)
     shift || true
     cmd_mode "${1:-}"
+    ;;
+  theme)
+    shift || true
+    cmd_theme "${1:-}" "${2:-}"
+    ;;
+  opacity)
+    shift || true
+    cmd_opacity "${1:-}"
     ;;
   status)
     cmd_status
