@@ -12,7 +12,7 @@ backup_file() {
   fi
 }
 
-mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/obsighost"
+mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/obsighost" "$HOME/.local/bin"
 
 backup_file "$HOME/.config/ghostty/config"
 cp "$REPO_DIR/configs/ghostty/config" "$HOME/.config/ghostty/config"
@@ -34,8 +34,21 @@ echo "Installed prompt theme -> ~/.config/ohmyposh/obsighost.omp.json"
 cp "$REPO_DIR/shell/obsighost.zsh" "$HOME/.config/obsighost/obsighost.zsh"
 echo "Installed shell snippet -> ~/.config/obsighost/obsighost.zsh"
 
+backup_file "$HOME/.local/bin/obsighost"
+cp "$REPO_DIR/bin/obsighost" "$HOME/.local/bin/obsighost"
+chmod +x "$HOME/.local/bin/obsighost"
+echo "Installed CLI -> ~/.local/bin/obsighost"
+
 if [[ ! -f "$HOME/.zshrc" ]]; then
   touch "$HOME/.zshrc"
+fi
+
+if ! grep -q 'PATH=.*\.local/bin' "$HOME/.zshrc"; then
+  cat >> "$HOME/.zshrc" <<'PATHBLOCK'
+
+export PATH="$HOME/.local/bin:$PATH"
+PATHBLOCK
+  echo "Added ~/.local/bin to PATH in ~/.zshrc"
 fi
 
 START_MARK="# >>> ObsiGhost >>>"

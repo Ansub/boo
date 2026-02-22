@@ -29,19 +29,21 @@ source ~/.zshrc
 
 Then open a new Ghostty window.
 
-## Toggle Startup Info
+## ObsiGhost CLI
 
 Default is full-info mode.
 
 ```bash
-obsighost-mode full
-obsighost-mode public
-obsighost-mode
+obsighost mode full
+obsighost mode public
+obsighost mode
+obsighost status
 ```
 
 - `full`: shows `user@host`, kernel, model, and load.
 - `public`: hides identifying machine details for screenshots.
-- Running without arguments prints current mode.
+- `obsighost mode` prints current mode.
+- `obsighost status` prints mode + config file location.
 
 Mode is persisted in `~/.config/obsighost/mode.zsh`.
 
@@ -49,6 +51,7 @@ Mode is persisted in `~/.config/obsighost/mode.zsh`.
 
 - `configs/ghostty/config` - Ghostty config
 - `configs/ohmyposh/obsighost.omp.json` - prompt theme
+- `bin/obsighost` - CLI for mode/status
 - `shell/obsighost.zsh` - shell integration + startup panel
 - `scripts/install.sh` - installer
 
@@ -56,7 +59,7 @@ Mode is persisted in `~/.config/obsighost/mode.zsh`.
 
 - Installer creates timestamped backups of replaced files.
 - If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/obsighost/obsighost.zsh`.
-- `obsighost-mode` is available after you source your shell config.
+- Legacy alias `obsighost-mode` is still available and forwards to `obsighost mode`.
 
 ## License
 

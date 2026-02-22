@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE_FILE="${HOME}/.config/obsighost/mode.zsh"
+
+print_help() {
+  cat <<'EOF'
+ObsiGhost CLI
+
+Usage:
+  obsighost mode [full|public]
+  obsighost status
+  obsighost help
+
+Commands:
+  mode      Show or set startup panel mode.
+  status    Print current mode and active config file.
+  help      Show this help message.
+EOF
+}
+
+read_mode() {
+  if [[ "${OBSIGHOST_SHOW_PRIVATE:-}" == "1" ]]; then
+    printf 'full\n'
+    return
+  fi
+  if [[ "${OBSIGHOST_SHOW_PRIVATE:-}" == "0" ]]; then
+    printf 'public\n'
+    return
+  fi
+  if [[ -f "$MODE_FILE" ]] && grep -q 'OBSIGHOST_SHOW_PRIVATE=0' "$MODE_FILE"; then
+    printf 'public\n'
+    return
+  fi
+  printf 'full\n'
+}
+
+write_mode_file() {
+  local value="$1"
+  mkdir -p "$(dirname "$MODE_FILE")"
+  printf 'export OBSIGHOST_SHOW_PRIVATE=%s\n' "$value" > "$MODE_FILE"
+}
+
+cmd_mode() {
+  local arg="${1:-}"
+
+  case "$arg" in
+    '')
+      printf 'Current mode: %s\n' "$(read_mode)"
+      printf 'Usage: obsighost mode [full|public]\n'
+      ;;
+    full|private|1)
+      write_mode_file "1"
+      printf 'ObsiGhost mode set to: full\n'
+      printf 'Apply now: source ~/.zshrc\n'
+      ;;
+    public|safe|0)
+      write_mode_file "0"
+      printf 'ObsiGhost mode set to: public\n'
+      printf 'Apply now: source ~/.zshrc\n'
+      ;;
+    *)
+      printf 'Invalid mode: %s\n' "$arg" >&2
+      printf 'Usage: obsighost mode [full|public]\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
+cmd_status() {
+  local mode
+  mode="$(read_mode)"
+  printf 'mode: %s\n' "$mode"
+  printf 'mode_file: %s\n' "$MODE_FILE"
+  if [[ -f "$MODE_FILE" ]]; then
+    printf 'mode_file_exists: yes\n'
+  else
+    printf 'mode_file_exists: no\n'
+  fi
+}
+
+subcommand="${1:-help}"
+case "$subcommand" in
+  mode)
+    shift || true
+    cmd_mode "${1:-}"
+    ;;
+  status)
+    cmd_status
+    ;;
+  help|-h|--help)
+    print_help
+    ;;
+  *)
+    printf 'Unknown command: %s\n\n' "$subcommand" >&2
+    print_help >&2
+    exit 1
+    ;;
+esac

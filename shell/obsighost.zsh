@@ -7,41 +7,18 @@ if [[ -z "${OBSIGHOST_OMP_INIT_DONE:-}" ]]; then
   fi
 fi
 
-# Optional mode override persisted by `obsighost-mode`.
+# Optional mode override persisted by `obsighost mode`.
 if [[ -f "$HOME/.config/obsighost/mode.zsh" ]]; then
   source "$HOME/.config/obsighost/mode.zsh"
 fi
 
 obsighost-mode() {
-  local mode="${1:-}"
-  local mode_file="$HOME/.config/obsighost/mode.zsh"
-
-  case "$mode" in
-    full|private|1)
-      mkdir -p "$HOME/.config/obsighost"
-      printf 'export OBSIGHOST_SHOW_PRIVATE=1\n' > "$mode_file"
-      export OBSIGHOST_SHOW_PRIVATE=1
-      printf 'ObsiGhost mode: full-info\n'
-      ;;
-    public|safe|0)
-      mkdir -p "$HOME/.config/obsighost"
-      printf 'export OBSIGHOST_SHOW_PRIVATE=0\n' > "$mode_file"
-      export OBSIGHOST_SHOW_PRIVATE=0
-      printf 'ObsiGhost mode: public-safe\n'
-      ;;
-    '')
-      if [[ "${OBSIGHOST_SHOW_PRIVATE:-1}" == "1" ]]; then
-        printf 'Current ObsiGhost mode: full-info\n'
-      else
-        printf 'Current ObsiGhost mode: public-safe\n'
-      fi
-      printf 'Usage: obsighost-mode [full|public]\n'
-      ;;
-    *)
-      printf 'Usage: obsighost-mode [full|public]\n' >&2
-      return 1
-      ;;
-  esac
+  if command -v obsighost >/dev/null 2>&1; then
+    obsighost mode "${1:-}"
+  else
+    printf 'obsighost CLI not found. Install it, then run: obsighost mode [full|public]\n' >&2
+    return 1
+  fi
 }
 
 show_obsighost_startup_panel() {
