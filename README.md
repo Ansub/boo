@@ -57,6 +57,8 @@ boo splash ghost
 boo splash custom ~/my-art.txt
 boo splash none
 boo splash reset
+boo doctor
+boo doctor fix
 boo reload
 boo reload --unsafe
 boo status
@@ -78,6 +80,8 @@ boo status
 - `boo splash custom <file>`: copies your file to `~/.config/boo/custom-splash.txt` and uses it.
 - `boo splash none`: disables the startup panel completely.
 - `boo splash reset`: restores default splash (`apple`).
+- `boo doctor`: checks for common setup issues (PATH, zsh block, legacy refs, config conflicts).
+- `boo doctor fix`: applies safe auto-fixes and re-runs checks.
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `boo mode` prints current mode.

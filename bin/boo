@@ -9,6 +9,15 @@ SPLASH_FILE="${HOME}/.config/boo/splash.zsh"
 CUSTOM_SPLASH_FILE="${HOME}/.config/boo/custom-splash.txt"
 BUILTIN_ART_DIR="${HOME}/.config/boo/art"
 DEFAULT_SPLASH="apple"
+CONFIG_DIR="${HOME}/.config/boo"
+SHELL_SNIPPET_FILE="${HOME}/.config/boo/boo.zsh"
+ZSHRC_FILE="${HOME}/.zshrc"
+LOCAL_BIN_DIR="${HOME}/.local/bin"
+LOCAL_BIN_FILE="${HOME}/.local/bin/boo"
+BOO_BLOCK_START="# >>> Boo >>>"
+BOO_BLOCK_END="# <<< Boo <<<"
+LEGACY_BLOCK_START="# >>> ObsiGhost >>>"
+LEGACY_BLOCK_END="# <<< ObsiGhost <<<"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
@@ -32,6 +41,7 @@ Usage:
   boo opacity [value|glass|solid]
   boo preview [<theme>|all] [--plain]
   boo splash [list|<name>|custom <file>|none|reset]
+  boo doctor [check|fix]
   boo reload [--unsafe]
   boo status
   boo help
@@ -43,6 +53,7 @@ Commands:
   opacity    Show or set Ghostty background opacity.
   preview    Preview one theme or all themes (ANSI swatches or plain hex).
   splash     Configure startup splash art (built-in/custom/none/reset).
+  doctor     Diagnose and optionally fix common setup issues.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
@@ -180,6 +191,238 @@ print_shell_apply_hint() {
   fi
   printf 'To apply now in this shell, run:\n'
   print_command_box "exec zsh"
+}
+
+doctor_ok_count=0
+doctor_warn_count=0
+doctor_fail_count=0
+
+doctor_reset_counts() {
+  doctor_ok_count=0
+  doctor_warn_count=0
+  doctor_fail_count=0
+}
+
+doctor_line() {
+  local level="$1"
+  local title="$2"
+  local detail="${3:-}"
+  local tag
+
+  case "$level" in
+    ok)
+      tag="[ok]"
+      doctor_ok_count=$((doctor_ok_count + 1))
+      ;;
+    warn)
+      tag="[warn]"
+      doctor_warn_count=$((doctor_warn_count + 1))
+      ;;
+    fail)
+      tag="[fail]"
+      doctor_fail_count=$((doctor_fail_count + 1))
+      ;;
+    *)
+      tag="[info]"
+      ;;
+  esac
+
+  printf '%-7s %s\n' "$tag" "$title"
+  if [[ -n "$detail" ]]; then
+    printf '        %s\n' "$detail"
+  fi
+}
+
+doctor_has_zshrc_boo_block() {
+  if [[ ! -f "$ZSHRC_FILE" ]]; then
+    return 1
+  fi
+  grep -qF "$BOO_BLOCK_START" "$ZSHRC_FILE" && grep -qF "$BOO_BLOCK_END" "$ZSHRC_FILE"
+}
+
+doctor_path_has_local_bin() {
+  case ":${PATH}:" in
+    *":${LOCAL_BIN_DIR}:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+doctor_file_hash() {
+  local file="$1"
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+    return
+  fi
+  cksum "$file" | awk '{print $1 "-" $2}'
+}
+
+doctor_clean_legacy_marked_block() {
+  local file="$1"
+  local tmp
+  tmp="$(mktemp)"
+  awk -v start="$LEGACY_BLOCK_START" -v end="$LEGACY_BLOCK_END" '
+    $0 ~ start { skip = 1; next }
+    $0 ~ end { skip = 0; next }
+    skip != 1 { print }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+doctor_remove_obsighost_lines() {
+  local file="$1"
+  local tmp
+  tmp="$(mktemp)"
+  awk '
+    /obsighost\.omp\.json/ { next }
+    /source .*\.config\/obsighost\/obsighost\.zsh/ { next }
+    /^obsighost_apply_highlight_colors$/ { next }
+    { print }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+doctor_ensure_zshrc_path_and_block() {
+  if [[ ! -f "$ZSHRC_FILE" ]]; then
+    touch "$ZSHRC_FILE"
+  fi
+
+  if ! grep -q 'PATH=.*\.local/bin' "$ZSHRC_FILE"; then
+    cat >> "$ZSHRC_FILE" <<'EOF'
+
+export PATH="$HOME/.local/bin:$PATH"
+EOF
+  fi
+
+  if ! doctor_has_zshrc_boo_block; then
+    cat >> "$ZSHRC_FILE" <<'EOF'
+
+# >>> Boo >>>
+if [[ -f "$HOME/.config/boo/boo.zsh" ]]; then
+  source "$HOME/.config/boo/boo.zsh"
+fi
+# <<< Boo <<<
+EOF
+  fi
+}
+
+doctor_apply_fixes() {
+  local self_bin
+  local script_dir script_root snippet_source
+  local old_backend
+
+  printf 'Applying safe fixes...\n'
+  mkdir -p "$CONFIG_DIR" "$LOCAL_BIN_DIR"
+
+  doctor_ensure_zshrc_path_and_block
+
+  if [[ -f "$ZSHRC_FILE" ]]; then
+    doctor_clean_legacy_marked_block "$ZSHRC_FILE"
+    doctor_remove_obsighost_lines "$ZSHRC_FILE"
+  fi
+
+  if [[ ! -f "$PROMPT_FILE" ]]; then
+    printf '%s\n' "$DEFAULT_PROMPT_BACKEND" > "$PROMPT_FILE"
+  fi
+
+  if [[ ! -f "$THEME_ENV_FILE" ]]; then
+    cat > "$THEME_ENV_FILE" <<'EOF'
+export BOO_THEME="obsidian"
+export BOO_ACCENT_COLOR="#a882ff"
+export BOO_PANEL_COLOR_RGB="168;130;255"
+EOF
+  fi
+
+  old_backend="$(read_prompt_backend)"
+  if [[ "$old_backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
+    write_prompt_backend "native"
+  fi
+
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  script_root="$(cd "$script_dir/.." && pwd)"
+  snippet_source="${script_root}/shell/boo.zsh"
+  if [[ ! -f "$SHELL_SNIPPET_FILE" && -f "$snippet_source" ]]; then
+    cp "$snippet_source" "$SHELL_SNIPPET_FILE"
+  fi
+
+  self_bin="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  if [[ -f "$self_bin" ]]; then
+    cp "$self_bin" "$LOCAL_BIN_FILE"
+    chmod +x "$LOCAL_BIN_FILE"
+  fi
+}
+
+doctor_run_checks() {
+  local configured_backend effective_backend
+  local command_path
+  local local_hash mac_hash
+  local refs
+
+  doctor_reset_counts
+  printf 'Boo doctor report\n'
+  printf '%s\n' '-----------------'
+
+  if [[ -x "$LOCAL_BIN_FILE" ]]; then
+    doctor_line ok "CLI binary exists" "$LOCAL_BIN_FILE"
+  else
+    doctor_line fail "CLI binary missing/executable bit not set" "$LOCAL_BIN_FILE"
+  fi
+
+  command_path="$(command -v boo 2>/dev/null || true)"
+  if [[ -n "$command_path" ]]; then
+    doctor_line ok "boo resolves in PATH" "$command_path"
+  else
+    doctor_line warn "boo command not found in current PATH" "Run: exec zsh (or add $LOCAL_BIN_DIR to PATH)."
+  fi
+
+  if doctor_path_has_local_bin; then
+    doctor_line ok "PATH contains ~/.local/bin"
+  else
+    doctor_line warn "PATH missing ~/.local/bin in current shell"
+  fi
+
+  if [[ -f "$SHELL_SNIPPET_FILE" ]]; then
+    doctor_line ok "Shell snippet exists" "$SHELL_SNIPPET_FILE"
+  else
+    doctor_line warn "Shell snippet missing" "$SHELL_SNIPPET_FILE"
+  fi
+
+  if doctor_has_zshrc_boo_block; then
+    doctor_line ok "Boo source block present in ~/.zshrc"
+  else
+    doctor_line warn "Boo source block missing in ~/.zshrc" "Run: boo doctor fix"
+  fi
+
+  refs="$(grep -nE 'obsighost|\.config/obsighost' "$ZSHRC_FILE" 2>/dev/null || true)"
+  if [[ -n "$refs" ]]; then
+    doctor_line warn "Legacy obsighost references found in ~/.zshrc" "Run: boo doctor fix"
+  else
+    doctor_line ok "No legacy obsighost references in ~/.zshrc"
+  fi
+
+  configured_backend="$(read_prompt_backend)"
+  effective_backend="$(effective_prompt_backend)"
+  doctor_line ok "Prompt backend" "configured=${configured_backend}, active=${effective_backend}"
+  if [[ "$configured_backend" == "omp" && "$effective_backend" == "native" ]]; then
+    doctor_line warn "oh-my-posh missing while prompt backend is omp" "Install oh-my-posh or run: boo prompt set native"
+  fi
+
+  if [[ -s "$GHOSTTY_CONFIG_PRIMARY" && -s "$GHOSTTY_CONFIG_MAC" ]]; then
+    local_hash="$(doctor_file_hash "$GHOSTTY_CONFIG_PRIMARY")"
+    mac_hash="$(doctor_file_hash "$GHOSTTY_CONFIG_MAC")"
+    if [[ "$local_hash" != "$mac_hash" ]]; then
+      doctor_line warn "Ghostty config mismatch across two locations" "$GHOSTTY_CONFIG_PRIMARY and $GHOSTTY_CONFIG_MAC differ."
+    else
+      doctor_line ok "Ghostty config mirrored in both locations"
+    fi
+  else
+    doctor_line ok "Ghostty config path setup has no split conflict"
+  fi
+
+  printf '\nSummary: ok=%d warn=%d fail=%d\n' "$doctor_ok_count" "$doctor_warn_count" "$doctor_fail_count"
+  if (( doctor_fail_count > 0 )); then
+    return 1
+  fi
+  return 0
 }
 
 theme_accent_color() {
@@ -1170,6 +1413,35 @@ cmd_splash() {
   esac
 }
 
+cmd_doctor() {
+  local action="${1:-check}"
+
+  case "$action" in
+    ''|check|status)
+      if doctor_run_checks; then
+        return 0
+      fi
+      printf '\nSome checks failed. Run `boo doctor fix` and then `exec zsh`.\n' >&2
+      return 1
+      ;;
+    fix|--fix)
+      doctor_apply_fixes
+      printf '\nRe-running checks after fixes...\n\n'
+      if doctor_run_checks; then
+        printf '\nDoctor finished. For shell changes, run `exec zsh`.\n'
+        return 0
+      fi
+      printf '\nDoctor applied fixes but some checks still failed.\n' >&2
+      return 1
+      ;;
+    *)
+      printf 'Invalid doctor action: %s\n' "$action" >&2
+      printf 'Usage: boo doctor [check|fix]\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
 cmd_status() {
   local mode
   mode="$(read_mode)"
@@ -1235,6 +1507,10 @@ case "$subcommand" in
   splash)
     shift || true
     cmd_splash "${1:-}" "${2:-}"
+    ;;
+  doctor)
+    shift || true
+    cmd_doctor "${1:-}"
     ;;
   status)
     cmd_status
