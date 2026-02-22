@@ -39,6 +39,8 @@ obsighost mode public
 obsighost mode
 obsighost theme list
 obsighost theme graphite
+obsighost theme crimson
+obsighost theme matrix
 obsighost opacity 0.92
 obsighost opacity glass
 obsighost reload
@@ -48,7 +50,7 @@ obsighost status
 
 - `full`: shows `user@host`, kernel, model, and load.
 - `public`: hides identifying machine details for screenshots.
-- `obsighost theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`).
+- `obsighost theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`).
 - `obsighost theme <name>`: applies terminal colors + prompt palette + shell accent colors.
 - `obsighost opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `obsighost opacity glass|solid`: quick presets (`0.92` / `1.00`).
@@ -66,6 +68,8 @@ Theme intent:
 - `obsidian`: original ObsiGhost look with purple accents.
 - `graphite`: neutral-gray look with lighter violet accents.
 - `lunar`: cool blue-gray look with no purple accents.
+- `crimson`: high-contrast red assault mode.
+- `matrix`: aggressive hacker-green mode.
 
 ## Reload Status
 

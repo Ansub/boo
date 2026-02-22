@@ -85,6 +85,8 @@ theme_accent_color() {
     obsidian) printf '#a882ff\n' ;;
     graphite) printf '#b7a2ff\n' ;;
     lunar) printf '#7cc6ff\n' ;;
+    crimson) printf '#ff4f7a\n' ;;
+    matrix) printf '#39ff14\n' ;;
     *) printf '#a882ff\n' ;;
   esac
 }
@@ -95,6 +97,8 @@ theme_panel_rgb() {
     obsidian) printf '168;130;255\n' ;;
     graphite) printf '183;162;255\n' ;;
     lunar) printf '124;198;255\n' ;;
+    crimson) printf '255;79;122\n' ;;
+    matrix) printf '57;255;20\n' ;;
     *) printf '168;130;255\n' ;;
   esac
 }
@@ -149,6 +153,26 @@ apply_prompt_theme() {
       tf_fg="#9ad9ff"
       sysinfo_fg="#a3deff"
       git_bg="#2a3e57"
+      ;;
+    crimson)
+      accent="#ff4f7a"
+      chip_cloud_bg="#40131f"
+      go_fg="#ff9ab0"
+      az_fg="#ff4f7a"
+      gcp_fg="#ff86a2"
+      tf_fg="#ffb3c5"
+      sysinfo_fg="#ff9db4"
+      git_bg="#4f1b2a"
+      ;;
+    matrix)
+      accent="#39ff14"
+      chip_cloud_bg="#0e2a18"
+      go_fg="#6bff73"
+      az_fg="#39ff14"
+      gcp_fg="#7bff8a"
+      tf_fg="#9dff9a"
+      sysinfo_fg="#83ffb3"
+      git_bg="#13351e"
       ;;
     *)
       return 1
@@ -314,6 +338,46 @@ palette = 12=#8ea8cc
 palette = 13=#9edbff
 palette = 14=#95c3cf
 palette = 15=#eff4ff
+EOF
+      ;;
+    crimson)
+      cat <<'EOF'
+palette = 0=#120606
+palette = 1=#ff4d57
+palette = 2=#d96b4d
+palette = 3=#ff8a5b
+palette = 4=#d45a6a
+palette = 5=#ff2f4f
+palette = 6=#ff6b8a
+palette = 7=#f7d8dd
+palette = 8=#2a0f12
+palette = 9=#ff6b74
+palette = 10=#f2876b
+palette = 11=#ffb07a
+palette = 12=#ff7f92
+palette = 13=#ff9ab0
+palette = 14=#ff8c9c
+palette = 15=#fff1f3
+EOF
+      ;;
+    matrix)
+      cat <<'EOF'
+palette = 0=#030803
+palette = 1=#2bff6e
+palette = 2=#39ff14
+palette = 3=#8cff66
+palette = 4=#00c853
+palette = 5=#00ff9c
+palette = 6=#00e676
+palette = 7=#b8ffca
+palette = 8=#0a1a0a
+palette = 9=#55ff88
+palette = 10=#74ff4f
+palette = 11=#b5ff7a
+palette = 12=#2aff9b
+palette = 13=#66ffd9
+palette = 14=#40ffb0
+palette = 15=#e8ffe8
 EOF
       ;;
     *)
@@ -577,9 +641,25 @@ apply_theme() {
       selection_bg="#243247"
       selection_fg="#f8fbff"
       ;;
+    crimson)
+      theme_name="Phala Green Dark"
+      foreground="#ffe4ea"
+      cursor_color="#fff3f6"
+      cursor_text="#000000"
+      selection_bg="#3a121a"
+      selection_fg="#fff7fa"
+      ;;
+    matrix)
+      theme_name="Phala Green Dark"
+      foreground="#caffd0"
+      cursor_color="#eaffef"
+      cursor_text="#000000"
+      selection_bg="#103018"
+      selection_fg="#f1fff3"
+      ;;
     *)
       printf 'Invalid theme: %s\n' "$theme" >&2
-      printf 'Use: obsidian, graphite, lunar\n' >&2
+      printf 'Use: obsidian, graphite, lunar, crimson, matrix\n' >&2
       exit 1
       ;;
   esac
@@ -641,11 +721,13 @@ Available themes:
   obsidian  - Original ObsiGhost palette + purple accents
   graphite  - Neutral gray + violet accents
   lunar     - Cool blue-gray, no purple accents
+  crimson   - High-contrast red assault mode
+  matrix    - Aggressive hacker-green mode
 EOF
       ;;
     set)
       if [[ -z "$theme" ]]; then
-        printf 'Usage: obsighost theme set <obsidian|graphite|lunar>\n' >&2
+        printf 'Usage: obsighost theme set <obsidian|graphite|lunar|crimson|matrix>\n' >&2
         exit 1
       fi
       apply_theme "$theme"
@@ -654,7 +736,7 @@ EOF
       printf 'If this tab does not refresh prompt immediately: source ~/.zshrc\n'
       cmd_reload || true
       ;;
-    obsidian|graphite|lunar)
+    obsidian|graphite|lunar|crimson|matrix)
       apply_theme "$action"
       printf 'ObsiGhost theme set to: %s\n' "$action"
       printf 'Prompt + syntax accents updated.\n'
