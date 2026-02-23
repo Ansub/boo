@@ -423,6 +423,10 @@ doctor_apply_fixes() {
     printf '%s\n' "$DEFAULT_PROMPT_BACKEND" > "$PROMPT_FILE"
   fi
 
+  if [[ ! -f "$THEME_FILE" ]]; then
+    printf '%s\n' "$DEFAULT_THEME" > "$THEME_FILE"
+  fi
+
   if [[ ! -f "$THEME_ENV_FILE" ]]; then
     cat > "$THEME_ENV_FILE" <<'EOF'
 export BOO_THEME="abyss"
@@ -1312,6 +1316,10 @@ APPLESCRIPT
 cmd_reload() {
   local option="${1:-}"
   local unsafe=0
+  local _t _a _rgb _ca _cb _cd _cv _cr
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
 
   case "$option" in
     ''|safe|--safe)
@@ -1327,38 +1335,25 @@ cmd_reload() {
   esac
 
   if [[ "${BOO_NO_AUTO_APPLY:-0}" == "1" ]]; then
-    printf 'Auto-apply skipped (BOO_NO_AUTO_APPLY=1).\n'
     return 0
   fi
 
   if (( unsafe == 1 )); then
     if unsafe_reload_via_keystroke; then
-      printf 'Triggered Ghostty reload_config via Cmd+Shift+, (unsafe mode).\n'
-      printf 'Warning: this can reset active terminals/sessions.\n'
+      printf "\n  ${_ca}↺${_cr}  ${_cv}config reloaded${_cr}\n"
       if [[ "$UNAME_S" == "Darwin" ]]; then
-        printf 'On macOS, background-opacity changes require a full Ghostty restart.\n'
+        printf "  ${_cd}   opacity changes may need a full Ghostty restart${_cr}\n"
       fi
+      printf "\n"
       return 0
     else
-      printf 'Unsafe reload unavailable (%s).\n' "${UNSAFE_RELOAD_REASON:-unknown}" >&2
-      if [[ "${UNSAFE_RELOAD_REASON:-}" == keystroke-failed:* ]] || [[ "${UNSAFE_RELOAD_REASON:-}" == process-failed:* ]]; then
-        printf 'Tip: grant Automation/Accessibility permission for Terminal and System Events.\n' >&2
-      elif [[ "${UNSAFE_RELOAD_REASON:-}" == unsupported-keybind:* ]]; then
-        printf 'Tip: Ghostty reload keybind must use Cmd+, or Cmd+Shift+, for auto-trigger support.\n' >&2
-        printf 'Current reload keybind: %s\n' "${UNSAFE_RELOAD_REASON#unsupported-keybind:}" >&2
-      elif [[ "${UNSAFE_RELOAD_REASON:-}" == not-frontmost ]]; then
-        printf 'Tip: focus Ghostty and run the command again.\n' >&2
-      fi
-      printf 'No window was opened. Restart/reopen Ghostty manually to apply changes.\n' >&2
-      if [[ "$UNAME_S" == "Darwin" ]]; then
-        printf 'On macOS, background-opacity changes require a full Ghostty restart.\n' >&2
-      fi
+      printf "\n  ${_cd}↺  press Cmd+Shift+, in Ghostty to apply${_cr}\n\n"
       return 1
     fi
   fi
 
-  printf "\n  \033[38;5;244m↺\033[0m  \033[38;5;252mGhostty config updated\033[0m\n"
-  printf "  \033[38;5;237m   boo reload --unsafe  ·  Cmd+Shift+, to fully apply\033[0m\n\n"
+  printf "\n  ${_cd}↺${_cr}  ${_cv}config saved${_cr}\n"
+  printf "  ${_cd}   boo reload --unsafe  ·  Cmd+Shift+, to apply${_cr}\n\n"
 }
 
 resolve_opacity() {
