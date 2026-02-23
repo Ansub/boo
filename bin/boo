@@ -25,6 +25,7 @@ OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
 DEFAULT_OPACITY="0.92"
 DEFAULT_THEME="obsidian"
 DEFAULT_PROMPT_BACKEND="native"
+DEFAULT_UPGRADE_URL="https://boo.ansub.co/install.sh"
 UNAME_S="$(uname -s)"
 UNSAFE_RELOAD_REASON=""
 
@@ -58,9 +59,7 @@ print_help() {
     done < "${BUILTIN_ART_DIR}/boo.txt"
   fi
   printf "\n"
-  printf "  ${cd}ghostty terminal toolkit${cr}\n"
-  printf "\n"
-  printf "  ${cl}configure${cr}\n"
+  printf "  ${cl}CONFIGURE${cr}\n"
   printf "\n"
   _hcmd "theme"     "[<name> · list]"    "apply themes & ANSI palette"
   _hcmd "font"      "[<preset> · size]"  "font family & size"
@@ -69,11 +68,12 @@ print_help() {
   _hcmd "prompt"    "[native · omp]"     "shell prompt backend"
   _hcmd "mode"      "[full · public]"    "startup panel mode"
   printf "\n"
-  printf "  ${cl}tools${cr}\n"
+  printf "  ${cl}TOOLS${cr}\n"
   printf "\n"
   _hcmd "status"    ""                   "current config at a glance"
   _hcmd "preview"   "[<theme> · all]"    "ANSI color swatches"
   _hcmd "reload"    "[--unsafe]"         "reload Ghostty config"
+  _hcmd "upgrade"   ""                   "update boo to latest release"
   _hcmd "doctor"    "[fix]"              "diagnose & fix issues"
   _hcmd "uninstall" ""                   "remove boo completely"
   printf "\n"
@@ -1868,6 +1868,60 @@ cmd_doctor() {
   esac
 }
 
+cmd_upgrade() {
+  local option="${1:-}"
+  local upgrade_url="${BOO_UPGRADE_URL:-$DEFAULT_UPGRADE_URL}"
+  local tmp
+
+  case "$option" in
+    ''|--yes|-y|yes)
+      ;;
+    help|-h|--help)
+      printf 'Usage: boo upgrade\n'
+      printf 'Downloads and runs the latest Boo installer.\n'
+      printf 'Optional: set BOO_UPGRADE_URL to use a custom installer URL.\n'
+      return 0
+      ;;
+    *)
+      printf 'Invalid upgrade option: %s\n' "$option" >&2
+      printf 'Usage: boo upgrade\n' >&2
+      exit 1
+      ;;
+  esac
+
+  if ! command -v curl >/dev/null 2>&1; then
+    printf 'Missing required command: curl\n' >&2
+    return 1
+  fi
+
+  if ! command -v bash >/dev/null 2>&1; then
+    printf 'Missing required command: bash\n' >&2
+    return 1
+  fi
+
+  tmp="$(mktemp)"
+  if ! curl -fsSL "$upgrade_url" -o "$tmp"; then
+    rm -f "$tmp"
+    printf 'Failed to download installer from: %s\n' "$upgrade_url" >&2
+    return 1
+  fi
+
+  if ! bash "$tmp"; then
+    rm -f "$tmp"
+    printf 'Upgrade failed.\n' >&2
+    return 1
+  fi
+
+  rm -f "$tmp"
+
+  if command -v hash >/dev/null 2>&1; then
+    hash -r 2>/dev/null || true
+  fi
+
+  printf '\nBoo upgrade complete.\n'
+  printf 'Run `exec zsh` to refresh your current shell.\n'
+}
+
 cmd_uninstall() {
   local option="${1:-}"
   local require_confirm=1
@@ -2115,6 +2169,10 @@ case "$subcommand" in
   doctor)
     shift || true
     cmd_doctor "${1:-}"
+    ;;
+  upgrade|update)
+    shift || true
+    cmd_upgrade "${1:-}"
     ;;
   uninstall)
     shift || true
