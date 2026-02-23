@@ -22,7 +22,7 @@ It includes:
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Ansub/boo/main/install.sh | bash
+curl -fsSL https://boo.ansub.co/install.sh | bash
 source ~/.zshrc
 ```
 
