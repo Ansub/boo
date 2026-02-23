@@ -8,10 +8,10 @@ Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 
 - Ghostty visual config with theme-tinted dark backgrounds
 - Full ANSI `palette 0..255` written on theme apply
-- Theme presets: `obsidian`, `lunar`, `crimson`, `abyss`, `fallout`
+- Theme presets: `obsidian`, `lunar`, `crimson`, `abyss`, `fallout` (default: `abyss`)
 - Dual prompts: native zsh (default) and optional `oh-my-posh`
 - Startup dashboard + splash art controls
-- Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor
+- Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor/upgrade
 
 ## Requirements
 
@@ -121,7 +121,7 @@ boo uninstall --yes
 - `obsidian`: original Boo look with purple accents
 - `lunar`: cool blue-gray (no purple accents)
 - `crimson`: high-contrast red mode
-- `abyss`: deep indigo with violet-magenta accents
+- `abyss`: deep indigo with violet-magenta accents (default)
 - `fallout`: RobCo Industries phosphor CRT — warm amber-lime on near-black
 
 ## Font Notes (Important)
@@ -187,6 +187,7 @@ Ghostty config targets used by Boo:
 ## Notes
 
 - Installer creates timestamped backups when replacing files.
+- `boo uninstall` restores your original Ghostty config when available, otherwise removes Boo-managed config.
 - If your `.zshrc` is complex, keep your existing setup and only source `~/.config/boo/boo.zsh`.
 - Helper commands: `boo-mode` -> `boo mode`, `boo-prompt` -> `boo prompt`.
 - To skip auto-apply in scripts, set `BOO_NO_AUTO_APPLY=1`.
