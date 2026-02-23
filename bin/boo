@@ -1886,41 +1886,92 @@ cmd_uninstall() {
 }
 
 cmd_status() {
-  local mode
+  local mode theme accent rgb
+  local font_family font_size
+  local prompt_configured prompt_effective
+  local splash opacity i
+
   mode="$(read_mode)"
-  local theme accent
   theme="$(read_theme_file)"
   accent="$(theme_accent_color "$theme")"
-  local font_family font_size
+  rgb="$(hex_to_rgb "$accent")"
   font_family="$(current_font_family)"
   font_size="$(current_font_size)"
+  prompt_configured="$(read_prompt_backend)"
+  prompt_effective="$(effective_prompt_backend)"
+  splash="$(read_splash_name)"
+  opacity="$(current_opacity)"
   collect_ghostty_targets
-  printf 'mode: %s\n' "$mode"
-  printf 'theme: %s\n' "$theme"
-  printf 'accent: %s\n' "$accent"
-  printf 'font_family: %s\n' "$font_family"
-  printf 'font_size: %s\n' "$font_size"
-  printf 'prompt_backend: %s\n' "$(read_prompt_backend)"
-  printf 'prompt_backend_effective: %s\n' "$(effective_prompt_backend)"
-  printf 'splash: %s\n' "$(read_splash_name)"
-  printf 'opacity: %s\n' "$(current_opacity)"
-  printf 'mode_file: %s\n' "$MODE_FILE"
-  if [[ -f "$MODE_FILE" ]]; then
-    printf 'mode_file_exists: yes\n'
-  else
-    printf 'mode_file_exists: no\n'
-  fi
-  printf 'theme_file: %s\n' "$THEME_FILE"
-  if [[ -f "$THEME_FILE" ]]; then
-    printf 'theme_file_exists: yes\n'
-  else
-    printf 'theme_file_exists: no\n'
-  fi
-  printf 'ghostty_config_count: %s\n' "${#ghostty_targets[@]}"
-  local file
-  for file in "${ghostty_targets[@]}"; do
-    printf 'ghostty_config: %s\n' "$file"
+
+  # Color helpers
+  local ca="\033[38;2;${rgb}m"           # accent fg
+  local ca_bg="\033[48;2;${rgb}m"        # accent bg
+  local cb="\033[1m"                     # bold
+  local ci="\033[2m"                     # dim
+  local cl="\033[38;5;244m"             # label
+  local cv="\033[38;5;252m"             # value
+  local cd="\033[38;5;237m"             # very dim (paths)
+  local cr="\033[0m"                     # reset
+
+  # Dimensions
+  local w=54
+  local inner=$(( w - 2 ))
+  local bar div
+  bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
+  div="$(printf '%*s' "$inner" '' | tr ' ' '─')"
+
+  # Palette strip: 16 theme colors using terminal's current ANSI palette
+  local palette_strip=""
+  for i in {0..15}; do
+    palette_strip+="\033[48;5;${i}m   \033[0m"
   done
+
+  # Header
+  local title="boo"
+  local pad=$(( inner - 2 - ${#title} - ${#theme} - 2 ))
+  (( pad < 1 )) && pad=1
+
+  printf "\n"
+  printf "  ${ca}╭${bar}╮${cr}\n"
+  printf "  ${ca}│${cr}  ${cb}${ca}%s${cr}%${pad}s${ci}%s${cr}  ${ca}│${cr}\n" \
+    "$title" "" "$theme"
+  printf "  ${ca}│${cr}  %b  ${ca}│${cr}\n" "$palette_strip"
+  printf "  ${ca}╰${bar}╯${cr}\n"
+  printf "\n"
+
+  # Theme row (full width)
+  printf "  ${cl}%-10s${cr}  ${cb}${ca}%-14s${cr}  \033[38;2;${rgb}m${ca_bg}████${cr}  ${cd}%s${cr}\n" \
+    "theme" "$theme" "$accent"
+  printf "\n"
+
+  # Two-column info rows
+  local lw=10  # label width
+  local vw=18  # col-1 value width
+
+  printf "  ${cl}%-${lw}s${cr}  ${cv}%-${vw}s${cr}    ${cl}%-${lw}s${cr}  ${cv}%s${cr}\n" \
+    "mode" "$mode" "opacity" "$opacity"
+  printf "  ${cl}%-${lw}s${cr}  ${cv}%-${vw}s${cr}    ${cl}%-${lw}s${cr}  ${cv}%s${cr}\n" \
+    "splash" "$splash" "prompt" "$prompt_configured"
+  if [[ "$prompt_configured" != "$prompt_effective" ]]; then
+    printf "  %-${lw}s  %-${vw}s    %-${lw}s  ${cd}↳ active: %s${cr}\n" \
+      "" "" "" "$prompt_effective"
+  fi
+  printf "  ${cl}%-${lw}s${cr}  ${cv}%s  ${cd}%s${cr}\n" \
+    "font" "$font_family" "$font_size"
+  printf "\n"
+
+  # Ghostty config paths
+  local file short_path first=1
+  for file in "${ghostty_targets[@]}"; do
+    short_path="${file/#$HOME/~}"
+    if (( first == 1 )); then
+      printf "  ${cl}%-10s${cr}  ${cd}%s${cr}\n" "ghostty" "$short_path"
+      first=0
+    else
+      printf "  %-10s  ${cd}%s${cr}\n" "" "$short_path"
+    fi
+  done
+  printf "\n"
 }
 
 subcommand="${1:-help}"
