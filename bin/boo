@@ -573,34 +573,54 @@ print_theme_preview() {
 print_preview_all_row() {
   local theme="$1"
   local plain="${2:-0}"
-  local line value rgb
-  local key
+  local line key value rgb
+  local accent accent_rgb
+  local values=()
 
   if (( plain == 1 )); then
-    local bg="" fg="" accent="" cursor="" selection=""
+    local bg="" fg="" accent_val="" cursor="" selection=""
     while IFS= read -r line; do
       key="${line%%=*}"
       value="${line#*=}"
       case "$key" in
         bg) bg="$value" ;;
         fg) fg="$value" ;;
-        accent) accent="$value" ;;
+        accent) accent_val="$value" ;;
         cursor) cursor="$value" ;;
         selection) selection="$value" ;;
       esac
     done < <(theme_core_colors "$theme")
     printf '%-10s bg=%s fg=%s accent=%s cursor=%s selection=%s boo theme %s\n' \
-      "$theme" "$bg" "$fg" "$accent" "$cursor" "$selection" "$theme"
+      "$theme" "$bg" "$fg" "$accent_val" "$cursor" "$selection" "$theme"
     return
   fi
 
-  printf '%-10s ' "$theme"
   while IFS= read -r line; do
-    value="${line#*=}"
-    rgb="$(hex_to_rgb "$value")" || return 1
-    printf '\033[38;2;%s;48;2;%sm████\033[0m ' "$rgb" "$rgb"
+    values+=("${line#*=}")
   done < <(theme_core_colors "$theme")
-  printf 'boo theme %s\n' "$theme"
+
+  accent="$(theme_accent_color "$theme")"
+  accent_rgb="$(hex_to_rgb "$accent")"
+
+  local ca="\033[38;2;${accent_rgb}m"
+  local cb="\033[1m"
+  local cd="\033[38;5;237m"
+  local cr="\033[0m"
+
+  # Line 1: theme name in its accent color + wide swatches + dim hint
+  printf "  ${cb}${ca}%-12s${cr}" "$theme"
+  for value in "${values[@]}"; do
+    rgb="$(hex_to_rgb "$value")"
+    printf " \033[38;2;%s;48;2;%sm███████\033[0m" "$rgb" "$rgb"
+  done
+  printf "  ${cd}boo theme %s${cr}\n" "$theme"
+
+  # Line 2: dim hex values aligned under swatches
+  printf "  %-12s" ""
+  for value in "${values[@]}"; do
+    printf " ${cd}%-7s${cr}" "$value"
+  done
+  printf "\n\n"
 }
 
 write_theme_env_file() {
@@ -1707,12 +1727,22 @@ cmd_preview() {
     all)
       if (( plain == 1 )); then
         printf 'Legend: bg fg accent cursor selection (hex)\n\n'
+        for theme in "${themes[@]}"; do
+          print_preview_all_row "$theme" "$plain"
+        done
       else
-        printf 'Legend: bg fg accent cursor selection\n\n'
+        local cl="\033[38;5;244m"
+        local cr="\033[0m"
+        local sep
+        sep="$(printf '%*s' 56 '' | tr ' ' '─')"
+        printf "\n"
+        printf "  ${cl}%-12s %-7s %-7s %-7s %-7s %-7s${cr}\n" \
+          "" "bg" "fg" "accent" "cursor" "sel"
+        printf "  ${cl}%s${cr}\n\n" "$sep"
+        for theme in "${themes[@]}"; do
+          print_preview_all_row "$theme" "$plain"
+        done
       fi
-      for theme in "${themes[@]}"; do
-        print_preview_all_row "$theme" "$plain"
-      done
       ;;
     *)
       print_theme_preview "$target" "$plain"
@@ -1886,10 +1916,10 @@ cmd_uninstall() {
 }
 
 cmd_status() {
-  local mode theme accent rgb
+  local mode theme accent rgb r2 g2 b2 r1 g1 b1
   local font_family font_size
   local prompt_configured prompt_effective
-  local splash opacity i
+  local splash opacity
 
   mode="$(read_mode)"
   theme="$(read_theme_file)"
@@ -1903,74 +1933,112 @@ cmd_status() {
   opacity="$(current_opacity)"
   collect_ghostty_targets
 
-  # Color helpers
-  local ca="\033[38;2;${rgb}m"           # accent fg
-  local ca_bg="\033[48;2;${rgb}m"        # accent bg
-  local cb="\033[1m"                     # bold
-  local ci="\033[2m"                     # dim
-  local cl="\033[38;5;244m"             # label
-  local cv="\033[38;5;252m"             # value
-  local cd="\033[38;5;237m"             # very dim (paths)
-  local cr="\033[0m"                     # reset
+  # Split accent RGB and compute dark start color for gradient (1/8 brightness)
+  IFS=';' read -r r2 g2 b2 <<< "$rgb"
+  r1=$(( r2 / 8 )); g1=$(( g2 / 8 )); b1=$(( b2 / 8 ))
 
-  # Dimensions
-  local w=54
-  local inner=$(( w - 2 ))
-  local bar div
+  local ca="\033[38;2;${rgb}m"
+  local cb="\033[1m"
+  local ci="\033[2m"
+  local cl="\033[38;5;244m"
+  local cv="\033[38;5;252m"
+  local cd="\033[38;5;237m"
+  local cr="\033[0m"
+
+  local inner=70
+  local bar
   bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
-  div="$(printf '%*s' "$inner" '' | tr ' ' '─')"
 
-  # Palette strip: 16 theme colors using terminal's current ANSI palette
-  local palette_strip=""
-  for i in {0..15}; do
-    palette_strip+="\033[48;5;${i}m   \033[0m"
+  # _brow: print a full-width card row with right border
+  # Usage: _brow <visible_char_count> <content_string>
+  _brow() {
+    local vis="$1" content="$2"
+    local pad=$(( inner - vis ))
+    (( pad < 0 )) && pad=0
+    printf "  ${ca}│${cr}%b%${pad}s${ca}│${cr}\n" "$content" ""
+  }
+
+  # _brow2: two-column row, col1 value padded to 12 chars
+  _brow2() {
+    local l1="$1" v1="$2" l2="$3" v2="$4"
+    local v1p=$(( 12 - ${#v1} ))
+    (( v1p < 0 )) && v1p=0
+    local vis=$(( 2 + ${#l1} + 2 + ${#v1} + v1p + 4 + ${#l2} + 2 + ${#v2} ))
+    local row="  ${cl}${l1}${cr}  ${cv}${v1}${cr}$(printf '%'${v1p}'s')    ${cl}${l2}${cr}  ${cv}${v2}${cr}"
+    _brow $vis "$row"
+  }
+
+  _bempty() { printf "  ${ca}│${cr}%${inner}s${ca}│${cr}\n" ""; }
+  _bdiv()   { printf "  ${ca}├${bar}┤${cr}\n"; }
+
+  # Shorten a path, abbreviating /Application Support/ to /…/
+  _spath() {
+    local p="${1/#$HOME/~}"
+    local max="$2"
+    p="${p/Application Support/…}"
+    (( ${#p} > max )) && p="${p:0:$((max - 1))}…"
+    printf '%s' "$p"
+  }
+
+  # ── Gradient bar: dark-accent → bright-accent across inner width ──
+  local grad="" i gr gg gb
+  for (( i = 0; i < inner; i++ )); do
+    gr=$(( r1 + (r2 - r1) * i / (inner - 1) ))
+    gg=$(( g1 + (g2 - g1) * i / (inner - 1) ))
+    gb=$(( b1 + (b2 - b1) * i / (inner - 1) ))
+    grad+="\033[48;2;${gr};${gg};${gb}m \033[0m"
   done
 
-  # Header
-  local title="boo"
-  local pad=$(( inner - 2 - ${#title} - ${#theme} - 2 ))
-  (( pad < 1 )) && pad=1
+  # Title row: "  boo" left, "theme  " right, padded to inner
+  local t_mid=$(( inner - 5 - ${#theme} - 2 ))
+  (( t_mid < 0 )) && t_mid=0
+  local title_row
+  title_row="$(printf "  ${cb}${ca}boo${cr}%${t_mid}s${ci}${theme}${cr}  " "")"
 
+  # ── Render ──
   printf "\n"
   printf "  ${ca}╭${bar}╮${cr}\n"
-  printf "  ${ca}│${cr}  ${cb}${ca}%s${cr}%${pad}s${ci}%s${cr}  ${ca}│${cr}\n" \
-    "$title" "" "$theme"
-  printf "  ${ca}│${cr}  %b  ${ca}│${cr}\n" "$palette_strip"
-  printf "  ${ca}╰${bar}╯${cr}\n"
-  printf "\n"
+  _brow $inner "$grad"
+  _brow $inner "$title_row"
+  _bdiv
 
-  # Theme row (full width)
-  printf "  ${cl}%-10s${cr}  ${cb}${ca}%-14s${cr}  \033[38;2;${rgb}m${ca_bg}████${cr}  ${cd}%s${cr}\n" \
-    "theme" "$theme" "$accent"
-  printf "\n"
+  # Theme swatch: "  theme     NAME    ████████  #accent"
+  local sw_vis=$(( 26 + ${#theme} + ${#accent} ))
+  local sw_row="  ${cl}theme${cr}     ${cb}${ca}${theme}${cr}    \033[38;2;${rgb}m\033[48;2;${rgb}m████████${cr}  ${cd}${accent}${cr}"
+  _bempty
+  _brow $sw_vis "$sw_row"
+  _bempty
 
-  # Two-column info rows
-  local lw=10  # label width
-  local vw=18  # col-1 value width
-
-  printf "  ${cl}%-${lw}s${cr}  ${cv}%-${vw}s${cr}    ${cl}%-${lw}s${cr}  ${cv}%s${cr}\n" \
-    "mode" "$mode" "opacity" "$opacity"
-  printf "  ${cl}%-${lw}s${cr}  ${cv}%-${vw}s${cr}    ${cl}%-${lw}s${cr}  ${cv}%s${cr}\n" \
-    "splash" "$splash" "prompt" "$prompt_configured"
+  # Two-column info
+  _brow2 "mode"   "$mode"   "opacity" "$opacity"
+  _brow2 "splash" "$splash" "prompt"  "$prompt_configured"
   if [[ "$prompt_configured" != "$prompt_effective" ]]; then
-    printf "  %-${lw}s  %-${vw}s    %-${lw}s  ${cd}↳ active: %s${cr}\n" \
-      "" "" "" "$prompt_effective"
+    local pe_vis=$(( 14 + ${#prompt_effective} ))
+    _brow $pe_vis "  ${cd}↳ active: ${prompt_effective}${cr}"
   fi
-  printf "  ${cl}%-${lw}s${cr}  ${cv}%s  ${cd}%s${cr}\n" \
-    "font" "$font_family" "$font_size"
-  printf "\n"
+  local fv=$(( 2 + 4 + 2 + ${#font_family} + 2 + ${#font_size} ))
+  _brow $fv "  ${cl}font${cr}  ${cv}${font_family}${cr}  ${cd}${font_size}${cr}"
+  _bempty
 
-  # Ghostty config paths
-  local file short_path first=1
+  # Ghostty paths
+  _bdiv
+  local file spath first=1
+  local max_p=$(( inner - 14 ))
   for file in "${ghostty_targets[@]}"; do
-    short_path="${file/#$HOME/~}"
+    spath="$(_spath "$file" $max_p)"
     if (( first == 1 )); then
-      printf "  ${cl}%-10s${cr}  ${cd}%s${cr}\n" "ghostty" "$short_path"
+      _brow $(( 2 + 7 + 4 + ${#spath} )) "  ${cl}ghostty${cr}    ${cd}${spath}${cr}"
       first=0
     else
-      printf "  %-10s  ${cd}%s${cr}\n" "" "$short_path"
+      _brow $(( 13 + ${#spath} )) "             ${cd}${spath}${cr}"
     fi
   done
+
+  # Quick-action footer
+  _bdiv
+  local footer="  boo theme list  ·  boo opacity glass  ·  boo reload"
+  _brow ${#footer} "  ${cd}boo theme list  ·  boo opacity glass  ·  boo reload${cr}"
+  printf "  ${ca}╰${bar}╯${cr}\n"
   printf "\n"
 }
 
