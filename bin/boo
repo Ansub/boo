@@ -197,6 +197,78 @@ print_shell_apply_hint() {
   print_command_box "exec zsh"
 }
 
+print_theme_applied_card() {
+  local theme="$1"
+  local accent rgb
+  accent="$(theme_accent_color "$theme")"
+  rgb="$(hex_to_rgb "$accent")"
+  IFS=';' read -r r2 g2 b2 <<< "$rgb"
+  local r1=$(( r2 / 8 )) g1=$(( g2 / 8 )) b1=$(( b2 / 8 ))
+
+  local ca="\033[38;2;${rgb}m"
+  local cb="\033[1m"
+  local cd="\033[38;5;237m"
+  local cl="\033[38;5;244m"
+  local cv="\033[38;5;252m"
+  local cr="\033[0m"
+
+  local inner=46
+  local bar; bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
+
+  _brow() {
+    local vis="$1" content="$2"
+    local pad=$(( inner - vis )); (( pad < 0 )) && pad=0
+    printf "  ${ca}│${cr}%b%${pad}s${ca}│${cr}\n" "$content" ""
+  }
+  _bempty() { printf "  ${ca}│${cr}%${inner}s${ca}│${cr}\n" ""; }
+  _bdiv()   { printf "  ${ca}├${bar}┤${cr}\n"; }
+
+  # Gradient bar
+  local grad="" i gr gg gb
+  for (( i = 0; i < inner; i++ )); do
+    gr=$(( r1 + (r2 - r1) * i / (inner - 1) ))
+    gg=$(( g1 + (g2 - g1) * i / (inner - 1) ))
+    gb=$(( b1 + (b2 - b1) * i / (inner - 1) ))
+    grad+="\033[48;2;${gr};${gg};${gb}m \033[0m"
+  done
+
+  # Title: "boo" left + theme right
+  local t_mid=$(( inner - 5 - ${#theme} - 2 ))
+  (( t_mid < 0 )) && t_mid=0
+  local title_row
+  title_row="$(printf "  ${cb}${ca}boo${cr}%${t_mid}s${cd}${theme}${cr}  " "")"
+
+  # Swatch row
+  local sw_row="  \033[38;2;${rgb}m\033[48;2;${rgb}m████████${cr}  ${cb}${ca}${theme}${cr}  ${cd}${accent}${cr}"
+  local sw_vis=$(( 2 + 8 + 2 + ${#theme} + 2 + ${#accent} ))
+
+  # Shell hint row
+  local shell_row shell_vis
+  if [[ "${BOO_SHELL_WRAPPER:-0}" == "1" ]]; then
+    shell_row="  ${ca}✓${cr}  ${cv}applied in this shell${cr}"
+    shell_vis=$(( 2 + 1 + 2 + 22 ))
+  else
+    shell_row="  ${cd}run${cr}  ${cb}${ca}exec zsh${cr}  ${cd}to apply in this shell${cr}"
+    shell_vis=$(( 2 + 3 + 2 + 8 + 2 + 22 ))
+  fi
+
+  printf "\n"
+  printf "  ${ca}╭${bar}╮${cr}\n"
+  _brow $inner "$grad"
+  _brow $inner "$title_row"
+  _bdiv
+  _bempty
+  _brow $sw_vis "$sw_row"
+  _bempty
+  _brow $(( 2 + 1 + 2 + 13 )) "  ${ca}✓${cr}  ${cv}theme applied${cr}"
+  _brow $(( 2 + 1 + 2 + 22 )) "  ${ca}✓${cr}  ${cv}prompt accents updated${cr}"
+  _brow $shell_vis "$shell_row"
+  _brow $(( 2 + 1 + 2 + 23 )) "  ${cd}↺${cr}  ${cl}restart Ghostty to apply${cr}"
+  _bempty
+  printf "  ${ca}╰${bar}╯${cr}\n"
+  printf "\n"
+}
+
 doctor_ok_count=0
 doctor_warn_count=0
 doctor_fail_count=0
@@ -1497,17 +1569,13 @@ EOF
         exit 1
       fi
       apply_theme "$theme"
-      printf 'Boo theme set to: %s\n' "$theme"
-      printf 'Prompt + syntax accents updated.\n'
-      print_shell_apply_hint
-      cmd_reload || true
+      print_theme_applied_card "$theme"
+      cmd_reload > /dev/null 2>&1 || true
       ;;
     obsidian|lunar|crimson|abyss|fallout)
       apply_theme "$action"
-      printf 'Boo theme set to: %s\n' "$action"
-      printf 'Prompt + syntax accents updated.\n'
-      print_shell_apply_hint
-      cmd_reload || true
+      print_theme_applied_card "$action"
+      cmd_reload > /dev/null 2>&1 || true
       ;;
     *)
       printf 'Invalid theme command: %s\n' "$action" >&2
