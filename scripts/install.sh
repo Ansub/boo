@@ -38,10 +38,6 @@ echo "Installed prompt presets -> ~/.config/boo/ohmyposh/"
 cp "$REPO_DIR/shell/boo.zsh" "$HOME/.config/boo/boo.zsh"
 echo "Installed shell snippet -> ~/.config/boo/boo.zsh"
 
-mkdir -p "$HOME/.config/boo/completions"
-cp "$REPO_DIR/shell/completions/_boo" "$HOME/.config/boo/completions/_boo"
-echo "Installed zsh completion -> ~/.config/boo/completions/_boo"
-
 mkdir -p "$HOME/.config/boo/art"
 cp "$REPO_DIR"/art/*.txt "$HOME/.config/boo/art/"
 echo "Installed splash art -> ~/.config/boo/art/"

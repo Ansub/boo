@@ -6,33 +6,6 @@ BOO_SPLASH_FILE="$HOME/.config/boo/splash.zsh"
 BOO_CUSTOM_SPLASH_FILE="$HOME/.config/boo/custom-splash.txt"
 BOO_ART_DIR="$HOME/.config/boo/art"
 BOO_DEFAULT_SPLASH="apple"
-BOO_COMPLETION_DIR="$HOME/.config/boo/completions"
-
-boo_setup_completion() {
-  if [[ ! -d "$BOO_COMPLETION_DIR" ]]; then
-    return
-  fi
-
-  if [[ -z "${fpath[(r)$BOO_COMPLETION_DIR]}" ]]; then
-    fpath=("$BOO_COMPLETION_DIR" $fpath)
-  fi
-
-  if (( $+functions[compdef] )); then
-    autoload -Uz add-zsh-hook
-    add-zsh-hook -d precmd boo_setup_completion 2>/dev/null || true
-    autoload -Uz _boo 2>/dev/null || true
-    compdef _boo boo boo-mode boo-prompt 2>/dev/null || true
-    return
-  fi
-
-  if [[ -z "${BOO_COMPLETION_HOOK_SET:-}" ]]; then
-    BOO_COMPLETION_HOOK_SET=1
-    autoload -Uz add-zsh-hook
-    add-zsh-hook precmd boo_setup_completion
-  fi
-}
-
-boo_setup_completion
 
 # Optional mode override persisted by `boo mode`.
 if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
