@@ -102,7 +102,7 @@ boo status
 - `boo doctor fix`: applies safe auto-fixes and re-runs checks.
 - `boo uninstall [--yes]`: removes Boo CLI/config and Boo source block in `~/.zshrc` (Ghostty config is left unchanged).
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
-- `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
+- `boo reload --unsafe`: attempts Ghostty `reload_config` via detected comma-based reload keybind (`Cmd+Shift+,` or `Cmd+,`).
 - `boo mode` prints current mode.
 - `boo status` prints mode, theme, prompt backend, opacity, and active config files.
 
