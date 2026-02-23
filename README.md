@@ -22,13 +22,20 @@ It includes:
 ## Quick Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Ansub/boo/main/install.sh | bash
+source ~/.zshrc
+```
+
+Then open a new Ghostty window.
+
+Or install from source:
+
+```bash
 git clone https://github.com/Ansub/boo.git
 cd boo
 ./scripts/install.sh
 source ~/.zshrc
 ```
-
-Then open a new Ghostty window.
 
 ## Quick Uninstall
 
