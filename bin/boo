@@ -1994,7 +1994,13 @@ cmd_uninstall() {
     [[ -f "$gpath" ]] || continue
     # Look for the most recent backup made by the installer
     local latest_backup=""
-    latest_backup="$(ls -t "${gpath}.backup-"* 2>/dev/null | head -1)"
+    local backup
+    for backup in "${gpath}.backup-"*; do
+      [[ -e "$backup" ]] || continue
+      if [[ -z "$latest_backup" || "$backup" -nt "$latest_backup" ]]; then
+        latest_backup="$backup"
+      fi
+    done
     if [[ -n "$latest_backup" ]]; then
       cp "$latest_backup" "$gpath"
       printf 'Restored Ghostty config from backup: %s\n' "$latest_backup"
