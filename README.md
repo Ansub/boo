@@ -30,6 +30,14 @@ source ~/.zshrc
 
 Then open a new Ghostty window.
 
+## Quick Uninstall
+
+```bash
+boo uninstall
+# or non-interactive
+boo uninstall --yes
+```
+
 ## Boo CLI
 
 Default is full-info mode.
@@ -60,6 +68,7 @@ boo splash none
 boo splash reset
 boo doctor
 boo doctor fix
+boo uninstall --yes
 boo reload
 boo reload --unsafe
 boo status
@@ -83,6 +92,7 @@ boo status
 - `boo splash reset`: restores default splash (`apple`).
 - `boo doctor`: checks for common setup issues (PATH, zsh block, legacy refs, config conflicts).
 - `boo doctor fix`: applies safe auto-fixes and re-runs checks.
+- `boo uninstall [--yes]`: removes Boo CLI/config and Boo source block in `~/.zshrc` (Ghostty config is left unchanged).
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via `Cmd+Shift+,`.
 - `boo mode` prints current mode.
