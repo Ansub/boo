@@ -52,7 +52,13 @@ print_help() {
   }
 
   printf "\n"
-  printf "  ${cb}${ca}boo${cr}  ${cd}ghostty terminal toolkit${cr}\n"
+  if [[ -f "${BUILTIN_ART_DIR}/boo.txt" ]]; then
+    while IFS= read -r line; do
+      printf "  ${ca}%s${cr}\n" "$line"
+    done < "${BUILTIN_ART_DIR}/boo.txt"
+  fi
+  printf "\n"
+  printf "  ${cd}ghostty terminal toolkit${cr}\n"
   printf "\n"
   printf "  ${cl}configure${cr}\n"
   printf "\n"
