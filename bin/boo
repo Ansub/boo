@@ -1340,11 +1340,6 @@ cmd_reload() {
 
   if (( unsafe == 1 )); then
     if unsafe_reload_via_keystroke; then
-      printf "\n  ${_ca}↺${_cr}  ${_cv}config reloaded${_cr}\n"
-      if [[ "$UNAME_S" == "Darwin" ]]; then
-        printf "  ${_cd}   opacity changes may need a full Ghostty restart${_cr}\n"
-      fi
-      printf "\n"
       return 0
     else
       printf "\n  ${_cd}↺  press Cmd+Shift+, in Ghostty to apply${_cr}\n\n"
