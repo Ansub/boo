@@ -11,6 +11,7 @@ Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 - Theme presets: `obsidian`, `graphite`, `lunar`, `crimson`, `matrix`, `abyss`
 - Dual prompts: native zsh (default) and optional `oh-my-posh`
 - Startup dashboard + splash art controls
+- Zsh autocomplete for `boo`, `boo-mode`, and `boo-prompt`
 - Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor
 
 ## Requirements
@@ -117,6 +118,31 @@ boo uninstall
 boo uninstall --yes
 ```
 
+## Autocomplete (zsh)
+
+Boo installs a completion script at `~/.config/boo/completions/_boo`.
+
+Quick checks:
+
+```bash
+which _boo
+```
+
+Then test with tab completion:
+
+```bash
+boo <TAB>
+boo theme <TAB>
+boo font set <TAB>
+```
+
+If completions do not show:
+
+```bash
+source ~/.zshrc
+exec zsh
+```
+
 ## Theme Intent
 
 - `obsidian`: original Boo look with purple accents
@@ -169,6 +195,7 @@ Boo persists state in:
 - `~/.config/boo/prompt`
 - `~/.config/boo/splash.zsh`
 - `~/.config/boo/custom-splash.txt` (when using custom splash)
+- `~/.config/boo/completions/_boo`
 
 Ghostty config targets used by Boo:
 
@@ -179,6 +206,7 @@ Ghostty config targets used by Boo:
 
 - `bin/boo` - Boo CLI
 - `shell/boo.zsh` - shell integration + startup panel
+- `shell/completions/_boo` - zsh completion for Boo commands
 - `configs/ghostty/config` - base Ghostty config
 - `configs/ohmyposh/boo.omp.json` - active prompt template
 - `configs/ohmyposh/presets/*.omp.json` - prompt presets
