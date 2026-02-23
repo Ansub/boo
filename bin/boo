@@ -31,37 +31,81 @@ UNSAFE_RELOAD_REASON=""
 ghostty_targets=()
 
 print_help() {
-  cat <<'EOF'
-Boo CLI
+  local theme accent rgb
+  theme="$(cat "$THEME_FILE" 2>/dev/null || printf 'obsidian')"
+  accent="$(theme_accent_color "$theme")"
+  rgb="$(hex_to_rgb "$accent")"
+  IFS=';' read -r r2 g2 b2 <<< "$rgb"
+  local r1=$(( r2 / 8 )) g1=$(( g2 / 8 )) b1=$(( b2 / 8 ))
 
-Usage:
-  boo mode [full|public]
-  boo prompt [show|list|set <native|omp>|native|omp]
-  boo theme [list|set <name>|<name>]
-  boo font [show|list|set <preset>|family <name>|size <value>|<preset>|<size>]
-  boo opacity [value|glass|solid]
-  boo preview [<theme>|all] [--plain]
-  boo splash [list|<name>|custom <file>|none|reset]
-  boo doctor [check|fix]
-  boo uninstall [--yes]
-  boo reload [--unsafe]
-  boo status
-  boo help
+  local ca="\033[38;2;${rgb}m"
+  local cb="\033[1m"
+  local cd="\033[38;5;237m"
+  local cl="\033[38;5;244m"
+  local cv="\033[38;5;252m"
+  local cr="\033[0m"
 
-Commands:
-  mode       Show or set startup panel mode.
-  prompt     Show or set shell prompt backend.
-  theme      List or apply full terminal/prompt presets.
-  font       Show or set Ghostty font family/size presets.
-  opacity    Show or set Ghostty background opacity.
-  preview    Preview one theme or all themes (ANSI swatches or plain hex).
-  splash     Configure startup splash art (built-in/custom/none/reset).
-  doctor     Diagnose and optionally fix common setup issues.
-  uninstall  Remove Boo CLI/config and shell integration block.
-  reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
-  status     Print current mode/theme/font/prompt/opacity.
-  help       Show this help message.
-EOF
+  local inner=58
+  local bar; bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
+
+  _brow() {
+    local vis="$1" content="$2"
+    local pad=$(( inner - vis )); (( pad < 0 )) && pad=0
+    printf "  ${ca}│${cr}%b%${pad}s${ca}│${cr}\n" "$content" ""
+  }
+  _bempty() { printf "  ${ca}│${cr}%${inner}s${ca}│${cr}\n" ""; }
+  _bdiv()   { printf "  ${ca}├${bar}┤${cr}\n"; }
+
+  # Command row: cmd(9) · args(18) · desc
+  _cmd() {
+    local cmd="$1" args="$2" desc="$3"
+    local cp=$(( 9  - ${#cmd}  )); (( cp < 0 )) && cp=0
+    local ap=$(( 18 - ${#args} )); (( ap < 0 )) && ap=0
+    local vis=$(( 2 + ${#cmd} + cp + 2 + ${#args} + ap + 2 + ${#desc} ))
+    local row
+    row="  ${cb}${ca}${cmd}${cr}$(printf '%*s' $cp '')  ${cd}${args}${cr}$(printf '%*s' $ap '')  ${cv}${desc}${cr}"
+    _brow $vis "$row"
+  }
+
+  # Gradient bar
+  local grad="" i gr gg gb
+  for (( i = 0; i < inner; i++ )); do
+    gr=$(( r1 + (r2 - r1) * i / (inner - 1) ))
+    gg=$(( g1 + (g2 - g1) * i / (inner - 1) ))
+    gb=$(( b1 + (b2 - b1) * i / (inner - 1) ))
+    grad+="\033[48;2;${gr};${gg};${gb}m \033[0m"
+  done
+
+  # Title: "boo" left + tagline right
+  local tagline="ghostty terminal toolkit"
+  local t_mid=$(( inner - 5 - ${#tagline} - 2 ))
+  (( t_mid < 0 )) && t_mid=0
+  local title_row
+  title_row="$(printf "  ${cb}${ca}boo${cr}%${t_mid}s${cd}${tagline}${cr}  " "")"
+
+  printf "\n"
+  printf "  ${ca}╭${bar}╮${cr}\n"
+  _brow $inner "$grad"
+  _brow $inner "$title_row"
+  _bdiv
+  _bempty
+  _cmd "theme"     "[<name> · list]"    "apply themes & ANSI palette"
+  _cmd "font"      "[<preset> · size]"  "font family & size"
+  _cmd "opacity"   "[glass · solid]"    "background opacity"
+  _cmd "splash"    "[<name> · none]"    "startup splash art"
+  _cmd "prompt"    "[native · omp]"     "shell prompt backend"
+  _cmd "mode"      "[full · public]"    "startup panel mode"
+  _bempty
+  _cmd "status"    ""                   "current config at a glance"
+  _cmd "preview"   "[<theme> · all]"    "ANSI color swatches"
+  _cmd "reload"    "[--unsafe]"         "reload Ghostty config"
+  _cmd "doctor"    "[fix]"              "diagnose & fix issues"
+  _cmd "uninstall" ""                   "remove boo completely"
+  _bempty
+  _bdiv
+  _brow 46 "  ${cd}boo theme list  ·  boo status  ·  boo doctor${cr}"
+  printf "  ${ca}╰${bar}╯${cr}\n"
+  printf "\n"
 }
 
 read_mode() {
