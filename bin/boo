@@ -279,7 +279,6 @@ print_theme_applied_card() {
   _brow $(( 2 + 1 + 2 + 13 )) "  ${ca}✓${cr}  ${cv}theme applied${cr}"
   _brow $(( 2 + 1 + 2 + 22 )) "  ${ca}✓${cr}  ${cv}prompt accents updated${cr}"
   _brow $shell_vis "$shell_row"
-  _brow $(( 2 + 1 + 2 + 19 + 2 + 1 + 2 + 11 )) "  ${cd}↺${cr}  ${cb}${ca}boo reload --unsafe${cr}  ${cd}·  Cmd+Shift+,${cr}"
   _bempty
   printf "  ${ca}╰${bar}╯${cr}\n"
   printf "\n"
