@@ -20,6 +20,9 @@ LEGACY_BLOCK_START="# >>> ObsiGhost >>>"
 LEGACY_BLOCK_END="# <<< ObsiGhost <<<"
 GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
+GHOSTTY_ORIGINAL_BACKUP_PRIMARY="${HOME}/.config/boo/backups/ghostty-config-primary.original"
+GHOSTTY_ORIGINAL_BACKUP_MAC="${HOME}/.config/boo/backups/ghostty-config-mac.original"
+BOO_GHOSTTY_MARKER="# Boo managed Ghostty config"
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
 OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
 DEFAULT_OPACITY="0.92"
@@ -818,6 +821,24 @@ apply_prompt_theme() {
 
   printf 'Prompt preset not found: %s\n' "$preset" >&2
   printf 'Run installer to install theme presets.\n' >&2
+  return 1
+}
+
+is_boo_ghostty_config_file() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+
+  if grep -qF "$BOO_GHOSTTY_MARKER" "$file"; then
+    return 0
+  fi
+
+  # Legacy Boo installs may not have the explicit marker.
+  if grep -qF "theme = Phala Green Dark" "$file" \
+    && grep -qF "window-padding-color = extend" "$file" \
+    && grep -qF "shell-integration = zsh" "$file"; then
+    return 0
+  fi
+
   return 1
 }
 
@@ -2005,34 +2026,52 @@ cmd_uninstall() {
     removed_any=1
   fi
 
-  if [[ -d "$CONFIG_DIR" ]]; then
-    rm -rf "$CONFIG_DIR"
-    printf 'Removed config directory: %s\n' "$CONFIG_DIR"
-    removed_any=1
-  fi
-
-  # Reset Ghostty config to default
+  # Reset Ghostty config to original/default before removing Boo state files.
   local ghostty_paths=("$GHOSTTY_CONFIG_PRIMARY" "$GHOSTTY_CONFIG_MAC")
-  for gpath in "${ghostty_paths[@]}"; do
+  local ghostty_original_backups=("$GHOSTTY_ORIGINAL_BACKUP_PRIMARY" "$GHOSTTY_ORIGINAL_BACKUP_MAC")
+  local idx gpath original_backup
+  for idx in "${!ghostty_paths[@]}"; do
+    gpath="${ghostty_paths[$idx]}"
+    original_backup="${ghostty_original_backups[$idx]}"
+
+    if [[ -f "$original_backup" ]]; then
+      mkdir -p "$(dirname "$gpath")"
+      cp "$original_backup" "$gpath"
+      printf 'Restored Ghostty config from original backup: %s\n' "$original_backup"
+      removed_any=1
+      continue
+    fi
+
     [[ -f "$gpath" ]] || continue
-    # Look for the most recent backup made by the installer
-    local latest_backup=""
+
+    # Fallback for legacy installs: restore oldest non-Boo backup, if present.
+    local restore_backup=""
     local backup
     for backup in "${gpath}.backup-"*; do
       [[ -e "$backup" ]] || continue
-      if [[ -z "$latest_backup" || "$backup" -nt "$latest_backup" ]]; then
-        latest_backup="$backup"
+      if is_boo_ghostty_config_file "$backup"; then
+        continue
+      fi
+      if [[ -z "$restore_backup" || "$backup" -ot "$restore_backup" ]]; then
+        restore_backup="$backup"
       fi
     done
-    if [[ -n "$latest_backup" ]]; then
-      cp "$latest_backup" "$gpath"
-      printf 'Restored Ghostty config from backup: %s\n' "$latest_backup"
+
+    if [[ -n "$restore_backup" ]]; then
+      cp "$restore_backup" "$gpath"
+      printf 'Restored Ghostty config from backup: %s\n' "$restore_backup"
     else
       rm -f "$gpath"
       printf 'Removed Boo Ghostty config: %s (Ghostty will use defaults)\n' "$gpath"
     fi
     removed_any=1
   done
+
+  if [[ -d "$CONFIG_DIR" ]]; then
+    rm -rf "$CONFIG_DIR"
+    printf 'Removed config directory: %s\n' "$CONFIG_DIR"
+    removed_any=1
+  fi
 
   if command -v hash >/dev/null 2>&1; then
     hash -r 2>/dev/null || true
