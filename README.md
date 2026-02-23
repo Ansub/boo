@@ -2,25 +2,28 @@
 
 <img width="2250" height="1026" alt="CleanShot 2026-02-22 at 21 26 28@2x" src="https://github.com/user-attachments/assets/e23277cd-2b2f-4e7a-94f4-7b925e4b34bb" />
 
-Boo is a polished Ghostty + Zsh setup inspired by Obsidian-like colors.
+Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 
-It includes:
-- Ghostty visual config (glass look, theme-tinted dark backgrounds, tuned text/cursor)
-- Full ANSI 256-color palette standard (`palette 0..255`) on theme apply
-- Dual prompt backends: native zsh (default) and optional `oh-my-posh`
-- Boo prompt presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`)
-- Neofetch-style startup dashboard for Ghostty
-- Theme-aware command/builtin syntax highlight accents for zsh
+## What You Get
 
-## Prerequisites
+- Ghostty visual config with theme-tinted dark backgrounds
+- Full ANSI `palette 0..255` written on theme apply
+- Theme presets: `obsidian`, `graphite`, `lunar`, `crimson`, `matrix`, `abyss`
+- Dual prompts: native zsh (default) and optional `oh-my-posh`
+- Startup dashboard + splash art controls
+- Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor
+
+## Requirements
 
 - macOS (tested)
-- Ghostty
+- [Ghostty](https://ghostty.org/)
 - `zsh`
+- Nerd Font installed in your system (recommended)
 - [oh-my-posh](https://ohmyposh.dev/) (optional)
-- Nerd Font in terminal (recommended)
 
-## Quick Install
+## Install
+
+### One-line install
 
 ```bash
 curl -fsSL https://boo.ansub.co/install.sh | bash
@@ -29,7 +32,7 @@ source ~/.zshrc
 
 Then open a new Ghostty window.
 
-Or install from source:
+### Install from source
 
 ```bash
 git clone https://github.com/Ansub/boo.git
@@ -38,7 +41,75 @@ cd boo
 source ~/.zshrc
 ```
 
-## Quick Uninstall
+## First 5 Minutes
+
+```bash
+boo doctor
+boo status
+boo theme matrix
+boo font jetbrains
+boo opacity glass
+boo reload --unsafe
+```
+
+## Common Commands
+
+### Themes
+
+```bash
+boo theme list
+boo theme abyss
+boo matrix      # shorthand
+boo crimson     # shorthand
+boo preview all
+boo preview abyss --plain
+```
+
+### Fonts
+
+```bash
+boo font
+boo font list
+boo font hack
+boo font family "JetBrainsMono Nerd Font"
+boo font size 15
+```
+
+### Prompt
+
+```bash
+boo prompt
+boo prompt set native
+boo prompt set omp
+```
+
+### Privacy mode
+
+```bash
+boo mode full
+boo mode public
+```
+
+### Splash art
+
+```bash
+boo splash list
+boo splash saturn
+boo splash custom ~/my-art.txt
+boo splash none
+boo splash reset
+```
+
+### Reload + diagnostics
+
+```bash
+boo reload
+boo reload --unsafe
+boo doctor
+boo doctor fix
+```
+
+### Uninstall
 
 ```bash
 boo uninstall
@@ -46,130 +117,81 @@ boo uninstall
 boo uninstall --yes
 ```
 
-## Boo CLI
+## Theme Intent
 
-Default is full-info mode.
+- `obsidian`: original Boo look with purple accents
+- `graphite`: neutral gray with subtle violet accents
+- `lunar`: cool blue-gray (no purple accents)
+- `crimson`: high-contrast red mode
+- `matrix`: aggressive hacker-green mode
+- `abyss`: deep indigo with violet-magenta accents
+
+## Font Notes (Important)
+
+If a font family is set but not installed, Ghostty falls back to another font.
+
+Check what is configured:
 
 ```bash
-boo crimson        # shorthand
-boo matrix         # shorthand
-boo mode full
-boo mode public
-boo mode
-boo prompt
-boo prompt set native
-boo prompt set omp
-boo theme list
-boo theme graphite
-boo theme crimson
-boo theme matrix
-boo theme abyss
 boo font
-boo font list
-boo font jetbrains
-boo font family "FiraCode Nerd Font"
-boo font size 15
-boo opacity 0.92
-boo opacity glass
-boo preview obsidian
-boo preview all
-boo preview all --plain
-boo splash list
-boo splash boo
-boo splash saturn
-boo splash custom ~/my-art.txt
-boo splash none
-boo splash reset
-boo doctor
-boo doctor fix
-boo uninstall --yes
-boo reload
-boo reload --unsafe
-boo status
+ghostty +show-config | rg '^font-family =|^font-size ='
 ```
 
-- `full`: shows `user@host`, kernel, model, and load.
-- `public`: hides identifying machine details for screenshots.
-- `boo prompt`: shows configured and active prompt backend.
-- `boo prompt set <native|omp>`: switches prompt engine (`native` is default).
-- `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`, `abyss`).
-- `boo theme <name>`: applies terminal colors + full `palette 0..255` + prompt palette + shell accent colors.
-- `boo font`: shows current Ghostty `font-family` and `font-size`.
-- `boo font list`: shows built-in font presets (`jetbrains`, `fira`, `meslo`, `hack`, `caskaydia`, `iosevka`).
-- `boo font <preset>|family <name>|size <value>`: sets font family or size in Ghostty config.
-- `boo opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
-- `boo opacity glass|solid`: quick presets (`0.92` / `1.00`).
-- `boo preview <theme>`: previews core theme colors with ANSI true-color swatches.
-- `boo preview all`: prints swatches for all themes for quick comparison.
-- `boo preview [<theme>|all] --plain`: prints plain hex values (no ANSI swatches).
-- `boo splash list`: lists available startup art with tiny previews.
-- `boo splash <name>`: picks built-in art (`apple`, `boo`, `saturn`, `minimal`).
-- `boo splash custom <file>`: copies your file to `~/.config/boo/custom-splash.txt` and uses it.
-- `boo splash none`: disables the startup panel completely.
-- `boo splash reset`: restores default splash (`apple`).
-- `boo doctor`: checks for common setup issues (PATH, zsh block, legacy refs, config conflicts).
-- `boo doctor fix`: applies safe auto-fixes and re-runs checks.
-- `boo uninstall [--yes]`: removes Boo CLI/config and Boo source block in `~/.zshrc` (Ghostty config is left unchanged).
-- `boo reload`: safe apply guidance (does not open windows or touch running sessions).
-- `boo reload --unsafe`: attempts Ghostty `reload_config` via detected comma-based reload keybind (`Cmd+Shift+,` or `Cmd+,`).
-- `boo mode` prints current mode.
-- `boo status` prints mode, theme, font, prompt backend, opacity, and active config files.
+Check what Ghostty is actually rendering:
 
-Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, prompt backend in `~/.config/boo/prompt`, and splash in `~/.config/boo/splash.zsh`.
-Theme commands auto-run safe `boo reload`.
-Opacity commands auto-run `boo reload --unsafe` for immediate apply attempts.
-Font commands auto-run `boo reload --unsafe` for immediate apply attempts.
-Theme accent state is stored in `~/.config/boo/theme.zsh`.
-Built-in splash art files are installed to `~/.config/boo/art/`; custom splash files are copied to `~/.config/boo/custom-splash.txt`.
-When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
+```bash
+ghostty +show-face --cp=0x41
+```
 
-Prompt backend behavior:
-- `native`: zero dependency zsh prompt.
-- `omp`: uses `oh-my-posh` when installed.
-- If `omp` is configured but `oh-my-posh` is missing, Boo falls back to `native`.
-- If run through Boo shell integration, `boo prompt set ...` applies instantly.
-- If run as plain binary, use `exec zsh` to refresh the current shell.
+Install missing Nerd Fonts with Homebrew casks, for example:
 
-Theme intent:
-- `obsidian`: original Boo look with purple accents.
-- `graphite`: neutral-gray look with lighter violet accents.
-- `lunar`: cool blue-gray look with no purple accents.
-- `crimson`: high-contrast red assault mode.
-- `matrix`: aggressive hacker-green mode.
-- `abyss`: deep indigo void with violet-magenta accents.
+```bash
+brew install --cask font-hack-nerd-font
+brew install --cask font-jetbrains-mono-nerd-font
+brew install --cask font-fira-code-nerd-font
+```
 
-## Reload Status
+## Reload Behavior
 
-Current behavior:
-- `boo reload` is non-destructive and does not force window/session changes.
-- `boo reload --unsafe` can work for immediate reload, but depends on macOS permissions/focus.
-- On macOS, `background-opacity` still typically needs a full Ghostty restart.
+- `boo reload`: safe guidance only (no key injection, no window/session changes)
+- `boo reload --unsafe`: tries to trigger Ghostty `reload_config` via detected comma-based keybind (`Cmd+Shift+,` or `Cmd+,`)
+- Theme changes auto-run safe reload
+- Font and opacity changes auto-run unsafe reload
+- On macOS, `background-opacity` can still require a full Ghostty restart
 
-If reload is not working:
-1. Focus Ghostty and run `boo reload --unsafe`.
-2. If it still does not apply, fully quit Ghostty and reopen it.
-3. For opacity specifically, prefer a full app restart on macOS.
+## State and Paths
 
-## Repo Structure
+Boo persists state in:
 
-- `configs/ghostty/config` - Ghostty config
-- `configs/ohmyposh/boo.omp.json` - prompt theme
-- `configs/ohmyposh/presets/*.omp.json` - prompt presets by theme
-- `bin/boo` - CLI for mode/theme/font/splash/opacity/status
+- `~/.config/boo/mode.zsh`
+- `~/.config/boo/theme`
+- `~/.config/boo/theme.zsh`
+- `~/.config/boo/prompt`
+- `~/.config/boo/splash.zsh`
+- `~/.config/boo/custom-splash.txt` (when using custom splash)
+
+Ghostty config targets used by Boo:
+
+- `~/.config/ghostty/config`
+- `~/Library/Application Support/com.mitchellh.ghostty/config`
+
+## Repo Layout
+
+- `bin/boo` - Boo CLI
 - `shell/boo.zsh` - shell integration + startup panel
-- `art/*.txt` - built-in startup ASCII art
-- `scripts/install.sh` - installer
+- `configs/ghostty/config` - base Ghostty config
+- `configs/ohmyposh/boo.omp.json` - active prompt template
+- `configs/ohmyposh/presets/*.omp.json` - prompt presets
+- `art/*.txt` - built-in splash art
+- `scripts/install.sh` - local installer
+- `install.sh` - bootstrap installer entrypoint
 
 ## Notes
 
-- Installer creates timestamped backups of replaced files.
-- If you already have a complex `.zshrc`, keep your own plugin setup and only source `~/.config/boo/boo.zsh`.
-- Helper command `boo-mode` forwards to `boo mode`.
-- Helper command `boo-prompt` forwards to `boo prompt`.
-- To skip auto-reload during scripting, run commands with `BOO_NO_AUTO_APPLY=1`.
-- On macOS, Ghostty only applies `background-opacity` after a full app restart.
-- `reload --unsafe` may reset active terminals/sessions depending on Ghostty state.
-- On macOS, the CLI updates the existing non-empty Ghostty config path to avoid split-config conflicts.
+- Installer creates timestamped backups when replacing files.
+- If your `.zshrc` is complex, keep your existing setup and only source `~/.config/boo/boo.zsh`.
+- Helper commands: `boo-mode` -> `boo mode`, `boo-prompt` -> `boo prompt`.
+- To skip auto-apply in scripts, set `BOO_NO_AUTO_APPLY=1`.
 
 ## License
 
