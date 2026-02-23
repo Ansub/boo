@@ -23,7 +23,7 @@ GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/co
 OMP_ACTIVE_CONFIG="${HOME}/.config/ohmyposh/boo.omp.json"
 OMP_PRESET_DIR="${HOME}/.config/boo/ohmyposh"
 DEFAULT_OPACITY="0.92"
-DEFAULT_THEME="obsidian"
+DEFAULT_THEME="abyss"
 DEFAULT_PROMPT_BACKEND="native"
 DEFAULT_UPGRADE_URL="https://boo.ansub.co/install.sh"
 UNAME_S="$(uname -s)"
@@ -33,7 +33,7 @@ ghostty_targets=()
 
 print_help() {
   local theme accent rgb
-  theme="$(cat "$THEME_FILE" 2>/dev/null || printf 'obsidian')"
+  theme="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
   accent="$(theme_accent_color "$theme")"
   rgb="$(hex_to_rgb "$accent")"
 
@@ -207,11 +207,10 @@ print_command_box() {
 
 print_shell_apply_hint() {
   if [[ "${BOO_SHELL_WRAPPER:-0}" == "1" ]]; then
-    printf 'Applied in current shell.\n'
+    printf "  \033[38;5;82m✓\033[0m  \033[38;5;252mapplied in this shell\033[0m\n\n"
     return
   fi
-  printf 'To apply now in this shell, run:\n'
-  print_command_box "exec zsh"
+  printf "  \033[38;5;237mrun\033[0m  \033[1;38;5;252mexec zsh\033[0m  \033[38;5;237mto apply in this shell\033[0m\n\n"
 }
 
 print_theme_applied_card() {
@@ -300,29 +299,29 @@ doctor_line() {
   local level="$1"
   local title="$2"
   local detail="${3:-}"
-  local tag
+  local icon esc
 
   case "$level" in
     ok)
-      tag="[ok]"
+      icon="✓"; esc="\033[38;5;82m"
       doctor_ok_count=$((doctor_ok_count + 1))
       ;;
     warn)
-      tag="[warn]"
+      icon="!"; esc="\033[38;5;214m"
       doctor_warn_count=$((doctor_warn_count + 1))
       ;;
     fail)
-      tag="[fail]"
+      icon="✗"; esc="\033[38;5;196m"
       doctor_fail_count=$((doctor_fail_count + 1))
       ;;
     *)
-      tag="[info]"
+      icon="·"; esc="\033[38;5;244m"
       ;;
   esac
 
-  printf '%-7s %s\n' "$tag" "$title"
+  printf "  ${esc}${icon}\033[0m  \033[38;5;252m%s\033[0m\n" "$title"
   if [[ -n "$detail" ]]; then
-    printf '        %s\n' "$detail"
+    printf "       \033[38;5;237m%s\033[0m\n" "$detail"
   fi
 }
 
@@ -410,7 +409,7 @@ doctor_apply_fixes() {
   local script_dir script_root snippet_source
   local old_backend
 
-  printf 'Applying safe fixes...\n'
+  printf "\n  \033[38;5;244mAPPLYING FIXES\033[0m\n\n"
   mkdir -p "$CONFIG_DIR" "$LOCAL_BIN_DIR"
 
   doctor_ensure_zshrc_path_and_block
@@ -426,9 +425,9 @@ doctor_apply_fixes() {
 
   if [[ ! -f "$THEME_ENV_FILE" ]]; then
     cat > "$THEME_ENV_FILE" <<'EOF'
-export BOO_THEME="obsidian"
-export BOO_ACCENT_COLOR="#a882ff"
-export BOO_PANEL_COLOR_RGB="168;130;255"
+export BOO_THEME="abyss"
+export BOO_ACCENT_COLOR="#cc44ff"
+export BOO_PANEL_COLOR_RGB="204;68;255"
 EOF
   fi
 
@@ -460,8 +459,7 @@ doctor_run_checks() {
   local refs
 
   doctor_reset_counts
-  printf 'Boo doctor report\n'
-  printf '%s\n' '-----------------'
+  printf "\n  \033[38;5;244mDOCTOR\033[0m\n\n"
 
   if [[ -x "$LOCAL_BIN_FILE" ]]; then
     doctor_line ok "CLI binary exists" "$LOCAL_BIN_FILE"
@@ -520,7 +518,11 @@ doctor_run_checks() {
     doctor_line ok "Ghostty config path setup has no split conflict"
   fi
 
-  printf '\nSummary: ok=%d warn=%d fail=%d\n' "$doctor_ok_count" "$doctor_warn_count" "$doctor_fail_count"
+  local _ok_c="\033[38;5;82m" _warn_c="\033[38;5;214m" _fail_c="\033[38;5;244m"
+  (( doctor_fail_count > 0 )) && _fail_c="\033[38;5;196m"
+  (( doctor_warn_count > 0 )) && _warn_c="\033[38;5;214m"
+  printf "\n  \033[38;5;244m%b%d ok\033[38;5;244m  ·  %b%d warn\033[38;5;244m  ·  %b%d fail\033[0m\n\n" \
+    "$_ok_c" "$doctor_ok_count" "$_warn_c" "$doctor_warn_count" "$_fail_c" "$doctor_fail_count"
   if (( doctor_fail_count > 0 )); then
     return 1
   fi
@@ -535,7 +537,7 @@ theme_accent_color() {
     crimson) printf '#ff4f7a\n' ;;
     abyss) printf '#cc44ff\n' ;;
     fallout) printf '#4af626\n' ;;
-    *) printf '#a882ff\n' ;;
+    *) printf '#cc44ff\n' ;;
   esac
 }
 
@@ -547,7 +549,7 @@ theme_panel_rgb() {
     crimson) printf '255;79;122\n' ;;
     abyss) printf '204;68;255\n' ;;
     fallout) printf '74;246;38\n' ;;
-    *) printf '168;130;255\n' ;;
+    *) printf '204;68;255\n' ;;
   esac
 }
 
@@ -1355,11 +1357,8 @@ cmd_reload() {
     fi
   fi
 
-  printf 'Config updated. Safe reload does not open windows or touch running sessions.\n'
-  printf 'Restart/reopen Ghostty manually to apply changes.\n'
-  if [[ "$UNAME_S" == "Darwin" ]]; then
-    printf 'On macOS, background-opacity changes require a full Ghostty restart.\n'
-  fi
+  printf "\n  \033[38;5;244m↺\033[0m  \033[38;5;252mGhostty config updated\033[0m\n"
+  printf "  \033[38;5;237m   boo reload --unsafe  ·  Cmd+Shift+, to fully apply\033[0m\n\n"
 }
 
 resolve_opacity() {
@@ -1477,20 +1476,23 @@ apply_theme() {
 
 cmd_mode() {
   local arg="${1:-}"
+  local _t _a _rgb _ca _cb _cd _cv _cr
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
 
   case "$arg" in
     '')
-      printf 'Current mode: %s\n' "$(read_mode)"
-      printf 'Usage: boo mode [full|public]\n'
+      printf "\n  ${_cd}mode${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$(read_mode)"
       ;;
     full|private|1)
       write_mode_file "1"
-      printf 'Boo mode set to: full\n'
+      printf "\n  ${_ca}✓${_cr}  ${_cv}mode  →  full${_cr}\n\n"
       print_shell_apply_hint
       ;;
     public|safe|0)
       write_mode_file "0"
-      printf 'Boo mode set to: public\n'
+      printf "\n  ${_ca}✓${_cr}  ${_cv}mode  →  public${_cr}\n\n"
       print_shell_apply_hint
       ;;
     *)
@@ -1510,19 +1512,25 @@ cmd_prompt() {
     ''|show|status)
       configured="$(read_prompt_backend)"
       effective="$(effective_prompt_backend)"
-      printf 'Prompt backend (configured): %s\n' "$configured"
-      printf 'Prompt backend (active): %s\n' "$effective"
-      if [[ "$configured" == "omp" && "$effective" == "native" ]]; then
-        printf 'oh-my-posh is missing; Boo is using native prompt fallback.\n'
+      local _t _a _rgb _ca _cb _cd _cv _cr
+      _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      if [[ "$configured" == "$effective" ]]; then
+        printf "\n  ${_cd}prompt${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$configured"
+      else
+        printf "\n  ${_cd}prompt${_cr}    ${_cb}${_ca}%s${_cr}  ${_cd}active: native — oh-my-posh not found${_cr}\n\n" "$configured"
       fi
-      printf 'Usage: boo prompt [show|list|set <native|omp>|native|omp]\n'
       ;;
     list)
-      cat <<'EOF'
-Available prompt backends:
-  native  - Built-in zsh prompt (no external dependency)
-  omp     - oh-my-posh prompt engine
-EOF
+      local _t _a _rgb _ca _cb _cd _cv _cr
+      _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      printf "\n  ${_cd}PROMPT BACKENDS${_cr}\n\n"
+      printf "  ${_cb}${_ca}native${_cr}    ${_cv}built-in zsh prompt${_cr}\n"
+      printf "  ${_cb}${_ca}omp${_cr}       ${_cv}oh-my-posh prompt engine${_cr}\n"
+      printf "\n"
       ;;
     set)
       if [[ -z "$backend" ]]; then
@@ -1532,10 +1540,15 @@ EOF
       case "$backend" in
         native|omp)
           write_prompt_backend "$backend"
-          printf 'Boo prompt backend set to: %s\n' "$backend"
+          local _t _a _rgb _ca _cb _cd _cv _cr
+          _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+          _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+          _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+          printf "\n  ${_ca}✓${_cr}  ${_cv}prompt  →  %s${_cr}\n" "$backend"
           if [[ "$backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
-            printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
+            printf "  ${_cd}  oh-my-posh not found — will fall back to native${_cr}\n"
           fi
+          printf "\n"
           print_shell_apply_hint
           ;;
         *)
@@ -1547,10 +1560,15 @@ EOF
       ;;
     native|omp)
       write_prompt_backend "$action"
-      printf 'Boo prompt backend set to: %s\n' "$action"
+      local _t _a _rgb _ca _cb _cd _cv _cr
+      _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}prompt  →  %s${_cr}\n" "$action"
       if [[ "$action" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
-        printf 'oh-my-posh not found; shell will fall back to native until it is installed.\n'
+        printf "  ${_cd}  oh-my-posh not found — will fall back to native${_cr}\n"
       fi
+      printf "\n"
       print_shell_apply_hint
       ;;
     *)
@@ -1567,18 +1585,24 @@ cmd_theme() {
 
   case "$action" in
     '')
-      printf 'Current theme: %s\n' "$(read_theme_file)"
-      printf 'Usage: boo theme [list|set <name>|<name>]\n'
+      local _t _a _rgb _ca _cb _cd _cv _cr
+      _t="$(read_theme_file)"
+      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      printf "\n  ${_cd}theme${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$_t"
       ;;
     list)
-      cat <<'EOF'
-Available themes:
-  obsidian  - Original Boo palette + purple accents
-  lunar     - Cool blue-gray, no purple accents
-  crimson   - High-contrast red assault mode
-  abyss     - Deep indigo void, violet-to-magenta spectrum
-  fallout   - RobCo phosphor green CRT, warm amber-lime
-EOF
+      local _t _a _rgb _ca _cb _cd _cv _cr
+      _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      printf "\n  ${_cd}THEMES${_cr}\n\n"
+      printf "  ${_cb}${_ca}obsidian${_cr}    ${_cv}original Boo look with purple accents${_cr}\n"
+      printf "  ${_cb}${_ca}lunar${_cr}       ${_cv}cool blue-gray, no purple accents${_cr}\n"
+      printf "  ${_cb}${_ca}crimson${_cr}     ${_cv}high-contrast red mode${_cr}\n"
+      printf "  ${_cb}${_ca}abyss${_cr}       ${_cv}deep indigo with violet-magenta accents${_cr}\n"
+      printf "  ${_cb}${_ca}fallout${_cr}     ${_cv}RobCo phosphor CRT — warm amber-lime${_cr}\n"
+      printf "\n"
       ;;
     set)
       if [[ -z "$theme" ]]; then
@@ -1605,23 +1629,25 @@ EOF
 cmd_font() {
   local action="${1:-}"
   local preset_family family size
+  local _t _a _rgb _ca _cb _cd _cv _cr
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
 
   case "$action" in
     ''|show|status)
-      printf 'Current font family: %s\n' "$(current_font_family)"
-      printf 'Current font size: %s\n' "$(current_font_size)"
-      printf 'Usage: boo font [show|list|set <preset>|family <name>|size <value>|<preset>|<size>]\n'
+      printf "\n  ${_cd}family${_cr}    ${_cb}${_ca}%s${_cr}\n" "$(current_font_family)"
+      printf "  ${_cd}size${_cr}      ${_cb}${_ca}%s${_cr}\n\n" "$(current_font_size)"
       ;;
     list)
-      cat <<'EOF'
-Available font presets:
-  jetbrains  - JetBrainsMono Nerd Font
-  fira       - FiraCode Nerd Font
-  meslo      - MesloLGS Nerd Font
-  hack       - Hack Nerd Font
-  caskaydia  - CaskaydiaCove Nerd Font
-  iosevka    - IosevkaTerm Nerd Font
-EOF
+      printf "\n  ${_cd}FONTS${_cr}\n\n"
+      printf "  ${_cb}${_ca}jetbrains${_cr}    ${_cv}JetBrainsMono Nerd Font${_cr}\n"
+      printf "  ${_cb}${_ca}fira${_cr}         ${_cv}FiraCode Nerd Font${_cr}\n"
+      printf "  ${_cb}${_ca}meslo${_cr}        ${_cv}MesloLGS Nerd Font${_cr}\n"
+      printf "  ${_cb}${_ca}hack${_cr}         ${_cv}Hack Nerd Font${_cr}\n"
+      printf "  ${_cb}${_ca}caskaydia${_cr}    ${_cv}CaskaydiaCove Nerd Font${_cr}\n"
+      printf "  ${_cb}${_ca}iosevka${_cr}      ${_cv}IosevkaTerm Nerd Font${_cr}\n"
+      printf "\n"
       ;;
     set)
       if [[ $# -lt 2 ]]; then
@@ -1636,7 +1662,7 @@ EOF
           fi
           family="${*:3}"
           set_font_family_value "$family"
-          printf 'Font family set to: %s\n' "$family"
+          printf "\n  ${_ca}✓${_cr}  ${_cv}font family  →  %s${_cr}\n\n" "$family"
           cmd_reload --unsafe || true
           ;;
         size)
@@ -1646,18 +1672,18 @@ EOF
           fi
           size="$(normalize_font_size "${3:-}")"
           set_font_size_value "$size"
-          printf 'Font size set to: %s\n' "$size"
+          printf "\n  ${_ca}✓${_cr}  ${_cv}font size  →  %s${_cr}\n\n" "$size"
           cmd_reload --unsafe || true
           ;;
         *)
           if preset_family="$(resolve_font_preset_family "${2:-}")"; then
             set_font_family_value "$preset_family"
-            printf 'Font preset applied: %s (%s)\n' "${2:-}" "$preset_family"
+            printf "\n  ${_ca}✓${_cr}  ${_cv}font  →  %s${_cr}\n\n" "$preset_family"
             cmd_reload --unsafe || true
           else
             family="${*:2}"
             set_font_family_value "$family"
-            printf 'Font family set to: %s\n' "$family"
+            printf "\n  ${_ca}✓${_cr}  ${_cv}font family  →  %s${_cr}\n\n" "$family"
             cmd_reload --unsafe || true
           fi
           ;;
@@ -1670,7 +1696,7 @@ EOF
       fi
       family="${*:2}"
       set_font_family_value "$family"
-      printf 'Font family set to: %s\n' "$family"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}font family  →  %s${_cr}\n\n" "$family"
       cmd_reload --unsafe || true
       ;;
     size)
@@ -1680,23 +1706,23 @@ EOF
       fi
       size="$(normalize_font_size "${2:-}")"
       set_font_size_value "$size"
-      printf 'Font size set to: %s\n' "$size"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}font size  →  %s${_cr}\n\n" "$size"
       cmd_reload --unsafe || true
       ;;
     *)
       if preset_family="$(resolve_font_preset_family "$action")"; then
         set_font_family_value "$preset_family"
-        printf 'Font preset applied: %s (%s)\n' "$action" "$preset_family"
+        printf "\n  ${_ca}✓${_cr}  ${_cv}font  →  %s${_cr}\n\n" "$preset_family"
         cmd_reload --unsafe || true
       elif is_font_size_token "$action"; then
         size="$(normalize_font_size "$action")"
         set_font_size_value "$size"
-        printf 'Font size set to: %s\n' "$size"
+        printf "\n  ${_ca}✓${_cr}  ${_cv}font size  →  %s${_cr}\n\n" "$size"
         cmd_reload --unsafe || true
       else
         family="$*"
         set_font_family_value "$family"
-        printf 'Font family set to: %s\n' "$family"
+        printf "\n  ${_ca}✓${_cr}  ${_cv}font family  →  %s${_cr}\n\n" "$family"
         cmd_reload --unsafe || true
       fi
       ;;
@@ -1706,16 +1732,19 @@ EOF
 cmd_opacity() {
   local arg="${1:-}"
   local resolved
+  local _t _a _rgb _ca _cb _cd _cv _cr
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
 
   case "$arg" in
     '')
-      printf 'Current opacity: %s\n' "$(current_opacity)"
-      printf 'Usage: boo opacity [value|glass|solid]\n'
+      printf "\n  ${_cd}opacity${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$(current_opacity)"
       ;;
     *)
       resolved="$(resolve_opacity "$arg")"
       set_opacity_value "$resolved"
-      printf 'Background opacity set to: %s\n' "$resolved"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}opacity  →  %s${_cr}\n\n" "$resolved"
       cmd_reload --unsafe || true
       ;;
   esac
@@ -1787,19 +1816,23 @@ cmd_splash() {
   local action="${1:-}"
   local arg="${2:-}"
   local splash
+  local _t _a _rgb _ca _cb _cd _cv _cr
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
+  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
 
   case "$action" in
     ''|show|status)
       splash="$(read_splash_name)"
-      printf 'Current splash: %s\n' "$splash"
-      printf 'Usage: boo splash [list|<name>|custom <file>|none|reset]\n'
+      printf "\n  ${_cd}splash${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$splash"
       ;;
     list)
-      printf 'Available splash art:\n'
+      printf "\n  ${_cd}SPLASH ART${_cr}\n\n"
       while IFS= read -r splash; do
-        printf '\n- %s\n' "$splash"
+        printf "  ${_cb}${_ca}%s${_cr}\n" "$splash"
         print_splash_preview "$splash"
       done < <(list_splash_names)
+      printf "\n"
       ;;
     custom)
       if [[ -z "$arg" ]]; then
@@ -1813,22 +1846,22 @@ cmd_splash() {
       mkdir -p "$(dirname "$CUSTOM_SPLASH_FILE")"
       cp "$arg" "$CUSTOM_SPLASH_FILE"
       write_splash_name "custom"
-      printf 'Splash set to custom: %s\n' "$CUSTOM_SPLASH_FILE"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  custom${_cr}\n\n"
       print_shell_apply_hint
       ;;
     none)
       write_splash_name "none"
-      printf 'Startup panel disabled.\n'
+      printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  disabled${_cr}\n\n"
       print_shell_apply_hint
       ;;
     reset)
       write_splash_name "$DEFAULT_SPLASH"
-      printf 'Splash reset to default: %s\n' "$DEFAULT_SPLASH"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s (default)${_cr}\n\n" "$DEFAULT_SPLASH"
       print_shell_apply_hint
       ;;
     apple|boo|saturn|minimal)
       write_splash_name "$action"
-      printf 'Splash set to: %s\n' "$action"
+      printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s${_cr}\n\n" "$action"
       print_shell_apply_hint
       ;;
     *)
@@ -1847,17 +1880,17 @@ cmd_doctor() {
       if doctor_run_checks; then
         return 0
       fi
-      printf '\nSome checks failed. Run `boo doctor fix` and then `exec zsh`.\n' >&2
+      printf "  \033[38;5;196m!\033[0m  \033[38;5;252msome checks failed\033[0m  \033[38;5;237mrun boo doctor fix\033[0m\n\n" >&2
       return 1
       ;;
     fix|--fix)
       doctor_apply_fixes
-      printf '\nRe-running checks after fixes...\n\n'
+      printf "\n  \033[38;5;244mRE-CHECKING\033[0m\n\n"
       if doctor_run_checks; then
-        printf '\nDoctor finished. For shell changes, run `exec zsh`.\n'
+        printf "  \033[38;5;82m✓\033[0m  \033[38;5;252mall checks passed\033[0m  \033[38;5;237mrun exec zsh to apply shell changes\033[0m\n\n"
         return 0
       fi
-      printf '\nDoctor applied fixes but some checks still failed.\n' >&2
+      printf "  \033[38;5;196m✗\033[0m  \033[38;5;252msome checks still failed\033[0m\n\n" >&2
       return 1
       ;;
     *)
