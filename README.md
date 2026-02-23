@@ -5,7 +5,8 @@
 Boo is a polished Ghostty + Zsh setup inspired by Obsidian-like colors.
 
 It includes:
-- Ghostty visual config (glass look, black background, tuned text/cursor)
+- Ghostty visual config (glass look, theme-tinted dark backgrounds, tuned text/cursor)
+- Full ANSI 256-color palette standard (`palette 0..255`) on theme apply
 - Dual prompt backends: native zsh (default) and optional `oh-my-posh`
 - Boo prompt presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`)
 - Neofetch-style startup dashboard for Ghostty
@@ -86,7 +87,7 @@ boo status
 - `boo prompt`: shows configured and active prompt backend.
 - `boo prompt set <native|omp>`: switches prompt engine (`native` is default).
 - `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`).
-- `boo theme <name>`: applies terminal colors + prompt palette + shell accent colors.
+- `boo theme <name>`: applies terminal colors + full `palette 0..255` + prompt palette + shell accent colors.
 - `boo opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `boo opacity glass|solid`: quick presets (`0.92` / `1.00`).
 - `boo preview <theme>`: previews core theme colors with ANSI true-color swatches.

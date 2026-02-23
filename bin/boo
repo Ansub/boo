@@ -501,11 +501,11 @@ EOF
       ;;
     matrix)
       cat <<'EOF'
-bg=#030803
-fg=#caffd0
+bg=#0d1a0d
+fg=#d8dde5
 accent=#39ff14
-cursor=#eaffef
-selection=#103018
+cursor=#e8ecf2
+selection=#262e38
 EOF
       ;;
     *)
@@ -764,6 +764,27 @@ upsert_key() {
   mv "$tmp" "$file"
 }
 
+emit_standard_palette_16_255() {
+  local levels=(00 5f 87 af d7 ff)
+  local r g b idx gray_step gray_value hex
+
+  idx=16
+  for r in "${levels[@]}"; do
+    for g in "${levels[@]}"; do
+      for b in "${levels[@]}"; do
+        printf 'palette = %d=#%s%s%s\n' "$idx" "$r" "$g" "$b"
+        idx=$((idx + 1))
+      done
+    done
+  done
+
+  for gray_step in {0..23}; do
+    gray_value=$((8 + gray_step * 10))
+    printf -v hex '%02x' "$gray_value"
+    printf 'palette = %d=#%s%s%s\n' $((232 + gray_step)) "$hex" "$hex" "$hex"
+  done
+}
+
 theme_palette_lines() {
   local theme="$1"
   case "$theme" in
@@ -786,6 +807,7 @@ palette = 13=#ac93cb
 palette = 14=#7dc7be
 palette = 15=#d9ead9
 EOF
+      emit_standard_palette_16_255
       ;;
     graphite)
       cat <<'EOF'
@@ -806,6 +828,7 @@ palette = 13=#bba2ff
 palette = 14=#a2c3c8
 palette = 15=#f2f5f9
 EOF
+      emit_standard_palette_16_255
       ;;
     lunar)
       cat <<'EOF'
@@ -826,6 +849,7 @@ palette = 13=#9edbff
 palette = 14=#95c3cf
 palette = 15=#eff4ff
 EOF
+      emit_standard_palette_16_255
       ;;
     crimson)
       cat <<'EOF'
@@ -846,10 +870,11 @@ palette = 13=#ff9ab0
 palette = 14=#ff8c9c
 palette = 15=#fff1f3
 EOF
+      emit_standard_palette_16_255
       ;;
     matrix)
       cat <<'EOF'
-palette = 0=#030803
+palette = 0=#0d1a0d
 palette = 1=#2bff6e
 palette = 2=#39ff14
 palette = 3=#8cff66
@@ -866,6 +891,7 @@ palette = 13=#66ffd9
 palette = 14=#40ffb0
 palette = 15=#e8ffe8
 EOF
+      emit_standard_palette_16_255
       ;;
     *)
       return 1
@@ -1100,12 +1126,13 @@ resolve_opacity() {
 
 apply_theme() {
   local theme="$1"
-  local theme_name foreground cursor_color cursor_text selection_bg selection_fg
+  local theme_name background foreground cursor_color cursor_text selection_bg selection_fg
   local file
 
   case "$theme" in
     obsidian)
       theme_name="Phala Green Dark"
+      background="#0b0f0b"
       foreground="#d8dde5"
       cursor_color="#e8ecf2"
       cursor_text="#000000"
@@ -1114,6 +1141,7 @@ apply_theme() {
       ;;
     graphite)
       theme_name="Phala Green Dark"
+      background="#0f1115"
       foreground="#e6ebf2"
       cursor_color="#f2f5fa"
       cursor_text="#000000"
@@ -1122,6 +1150,7 @@ apply_theme() {
       ;;
     lunar)
       theme_name="Phala Green Dark"
+      background="#0a0f18"
       foreground="#d9e2f2"
       cursor_color="#f2f6ff"
       cursor_text="#000000"
@@ -1130,6 +1159,7 @@ apply_theme() {
       ;;
     crimson)
       theme_name="Phala Green Dark"
+      background="#120606"
       foreground="#ffe4ea"
       cursor_color="#fff3f6"
       cursor_text="#000000"
@@ -1138,11 +1168,12 @@ apply_theme() {
       ;;
     matrix)
       theme_name="Phala Green Dark"
-      foreground="#caffd0"
-      cursor_color="#eaffef"
+      background="#0d1a0d"
+      foreground="#d8dde5"
+      cursor_color="#e8ecf2"
       cursor_text="#000000"
-      selection_bg="#103018"
-      selection_fg="#f1fff3"
+      selection_bg="#262e38"
+      selection_fg="#f5f7fb"
       ;;
     *)
       printf 'Invalid theme: %s\n' "$theme" >&2
@@ -1154,6 +1185,7 @@ apply_theme() {
   collect_ghostty_targets
   for file in "${ghostty_targets[@]}"; do
     upsert_key "$file" "theme" "$theme_name"
+    upsert_key "$file" "background" "$background"
     upsert_key "$file" "foreground" "$foreground"
     upsert_key "$file" "cursor-color" "$cursor_color"
     upsert_key "$file" "cursor-text" "$cursor_text"
