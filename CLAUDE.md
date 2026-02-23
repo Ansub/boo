@@ -25,13 +25,10 @@ Every theme owns the entire 16-color ANSI palette. Text, errors, prompts, git st
 | obsidian | Dark green-black + purple tint        | `#0b0f0b`  | `#a882ff` |
 | lunar    | Cold blue-gray                        | `#0a0f18`  | `#7cc6ff` |
 | crimson  | Everything bleeds red                 | `#120606`  | `#ff4f7a` |
-| matrix   | Full phosphor green commitment        | `#061206`  | `#00ff41` |
 | abyss    | Deep indigo void → violet-to-magenta  | `#060412`  | `#cc44ff` |
 | fallout  | RobCo phosphor CRT, warm amber-lime   | `#020602`  | `#4af626` |
 
 **abyss** was directly inspired by the Pastel Ghost / Abyss album cover — deep indigo-black background, all 16 ANSI colors live between dark indigo (`#3d0a6b`) and bright magenta-violet (`#f0d0ff`). All body text is purple-tinted (`#9966cc`).
-
-**matrix** uses `#00ff41` — the canonical Matrix movie digital rain green. Foreground is phosphor green (`#00cc44`), not neutral gray.
 
 ### When adding a new theme, touch all of these:
 

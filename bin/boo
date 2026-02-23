@@ -444,7 +444,6 @@ theme_accent_color() {
     obsidian) printf '#a882ff\n' ;;
     lunar) printf '#7cc6ff\n' ;;
     crimson) printf '#ff4f7a\n' ;;
-    matrix) printf '#00ff41\n' ;;
     abyss) printf '#cc44ff\n' ;;
     fallout) printf '#4af626\n' ;;
     *) printf '#a882ff\n' ;;
@@ -457,7 +456,6 @@ theme_panel_rgb() {
     obsidian) printf '168;130;255\n' ;;
     lunar) printf '124;198;255\n' ;;
     crimson) printf '255;79;122\n' ;;
-    matrix) printf '0;255;65\n' ;;
     abyss) printf '204;68;255\n' ;;
     fallout) printf '74;246;38\n' ;;
     *) printf '168;130;255\n' ;;
@@ -492,15 +490,6 @@ fg=#ffe4ea
 accent=#ff4f7a
 cursor=#fff3f6
 selection=#3a121a
-EOF
-      ;;
-    matrix)
-      cat <<'EOF'
-bg=#061206
-fg=#00cc44
-accent=#00ff41
-cursor=#00ff41
-selection=#0d3d0d
 EOF
       ;;
     abyss)
@@ -673,16 +662,6 @@ apply_prompt_theme() {
       tf_fg="#ffb3c5"
       sysinfo_fg="#ff9db4"
       git_bg="#4f1b2a"
-      ;;
-    matrix)
-      accent="#00ff41"
-      chip_cloud_bg="#0a2a0a"
-      go_fg="#44ff88"
-      az_fg="#00ff41"
-      gcp_fg="#55ff99"
-      tf_fg="#88ffcc"
-      sysinfo_fg="#66ff88"
-      git_bg="#0d3d0d"
       ;;
     abyss)
       accent="#cc44ff"
@@ -891,27 +870,6 @@ palette = 12=#ff7f92
 palette = 13=#ff9ab0
 palette = 14=#ff8c9c
 palette = 15=#fff1f3
-EOF
-      emit_standard_palette_16_255
-      ;;
-    matrix)
-      cat <<'EOF'
-palette = 0=#061206
-palette = 1=#1a6b1a
-palette = 2=#00aa33
-palette = 3=#55aa00
-palette = 4=#006633
-palette = 5=#00ff41
-palette = 6=#00bb88
-palette = 7=#88cc88
-palette = 8=#0a2a0a
-palette = 9=#00dd55
-palette = 10=#00ff66
-palette = 11=#aaff44
-palette = 12=#00eeaa
-palette = 13=#55ffcc
-palette = 14=#22ffee
-palette = 15=#ccffcc
 EOF
       emit_standard_palette_16_255
       ;;
@@ -1386,15 +1344,6 @@ apply_theme() {
       selection_bg="#3a121a"
       selection_fg="#fff7fa"
       ;;
-    matrix)
-      theme_name="Phala Green Dark"
-      background="#061206"
-      foreground="#00cc44"
-      cursor_color="#00ff41"
-      cursor_text="#000000"
-      selection_bg="#0d3d0d"
-      selection_fg="#00ff88"
-      ;;
     abyss)
       theme_name="Phala Green Dark"
       background="#060412"
@@ -1415,7 +1364,7 @@ apply_theme() {
       ;;
     *)
       printf 'Invalid theme: %s\n' "$theme" >&2
-      printf 'Use: obsidian, lunar, crimson, matrix, abyss, fallout\n' >&2
+      printf 'Use: obsidian, lunar, crimson, abyss, fallout\n' >&2
       exit 1
       ;;
   esac
@@ -1538,14 +1487,13 @@ Available themes:
   obsidian  - Original Boo palette + purple accents
   lunar     - Cool blue-gray, no purple accents
   crimson   - High-contrast red assault mode
-  matrix    - Aggressive hacker-green mode
   abyss     - Deep indigo void, violet-to-magenta spectrum
   fallout   - RobCo phosphor green CRT, warm amber-lime
 EOF
       ;;
     set)
       if [[ -z "$theme" ]]; then
-        printf 'Usage: boo theme set <obsidian|lunar|crimson|matrix|abyss|fallout>\n' >&2
+        printf 'Usage: boo theme set <obsidian|lunar|crimson|abyss|fallout>\n' >&2
         exit 1
       fi
       apply_theme "$theme"
@@ -1554,7 +1502,7 @@ EOF
       print_shell_apply_hint
       cmd_reload || true
       ;;
-    obsidian|lunar|crimson|matrix|abyss|fallout)
+    obsidian|lunar|crimson|abyss|fallout)
       apply_theme "$action"
       printf 'Boo theme set to: %s\n' "$action"
       printf 'Prompt + syntax accents updated.\n'
@@ -1692,7 +1640,7 @@ cmd_preview() {
   local target=""
   local token
   local plain=0
-  local themes=(obsidian lunar crimson matrix abyss fallout)
+  local themes=(obsidian lunar crimson abyss fallout)
   local theme
 
   for token in "$@"; do
@@ -1702,24 +1650,24 @@ cmd_preview() {
       --plain|-p)
         plain=1
         ;;
-      obsidian|lunar|crimson|matrix|abyss|fallout|all)
+      obsidian|lunar|crimson|abyss|fallout|all)
         if [[ -n "$target" ]]; then
           printf 'Only one preview target can be used at a time.\n' >&2
-          printf 'Usage: boo preview <obsidian|lunar|crimson|matrix|abyss|fallout|all> [--plain]\n' >&2
+          printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n' >&2
           exit 1
         fi
         target="$token"
         ;;
       *)
         printf 'Invalid preview option/target: %s\n' "$token" >&2
-        printf 'Usage: boo preview <obsidian|lunar|crimson|matrix|abyss|fallout|all> [--plain]\n' >&2
+        printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n' >&2
         exit 1
         ;;
     esac
   done
 
   if [[ -z "$target" ]]; then
-    printf 'Usage: boo preview <obsidian|lunar|crimson|matrix|abyss|fallout|all> [--plain]\n'
+    printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n'
     return
   fi
 
@@ -2060,7 +2008,7 @@ case "$subcommand" in
     shift || true
     cmd_prompt "${1:-}" "${2:-}"
     ;;
-  obsidian|lunar|crimson|matrix|abyss|fallout)
+  obsidian|lunar|crimson|abyss|fallout)
     cmd_theme "$subcommand"
     ;;
   opacity)

@@ -154,7 +154,7 @@ boo() {
     prompt)
       boo_apply_prompt_backend
       ;;
-    theme|obsidian|lunar|crimson|matrix|abyss|fallout)
+    theme|obsidian|lunar|crimson|abyss|fallout)
       if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
         source "$HOME/.config/boo/theme.zsh"
       fi
