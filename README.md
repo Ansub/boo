@@ -16,10 +16,10 @@ Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 ## Requirements
 
 - macOS (tested)
-- [Ghostty](https://ghostty.org/)
+- <a href="https://ghostty.org/" target="_blank" rel="noopener noreferrer">Ghostty</a>
 - `zsh`
 - Nerd Font installed in your system (recommended)
-- [oh-my-posh](https://ohmyposh.dev/) (optional)
+- <a href="https://ohmyposh.dev/" target="_blank" rel="noopener noreferrer">oh-my-posh</a> (optional)
 
 ## Install
 
@@ -108,6 +108,12 @@ boo doctor
 boo doctor fix
 ```
 
+### Upgrade
+
+```bash
+boo upgrade
+```
+
 ### Uninstall
 
 ```bash
@@ -187,7 +193,7 @@ Ghostty config targets used by Boo:
 ## Notes
 
 - Installer creates timestamped backups when replacing files.
-- `boo uninstall` restores your original Ghostty config when available, otherwise removes Boo-managed config.
+- Upgrading is one command: `boo upgrade`.
 - If your `.zshrc` is complex, keep your existing setup and only source `~/.config/boo/boo.zsh`.
 - Helper commands: `boo-mode` -> `boo mode`, `boo-prompt` -> `boo prompt`.
 - To skip auto-apply in scripts, set `BOO_NO_AUTO_APPLY=1`.

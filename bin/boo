@@ -218,6 +218,7 @@ print_shell_apply_hint() {
 
 print_theme_applied_card() {
   local theme="$1"
+  local reload_ok="${2:-0}"
   local accent rgb
   accent="$(theme_accent_color "$theme")"
   rgb="$(hex_to_rgb "$accent")"
@@ -282,7 +283,9 @@ print_theme_applied_card() {
   _brow $(( 2 + 1 + 2 + 13 )) "  ${ca}✓${cr}  ${cv}theme applied${cr}"
   _brow $(( 2 + 1 + 2 + 22 )) "  ${ca}✓${cr}  ${cv}prompt accents updated${cr}"
   _brow $shell_vis "$shell_row"
-  _brow $(( 2 + 1 + 2 + 19 + 2 + 1 + 2 + 11 )) "  ${cd}↺${cr}  ${cb}${ca}boo reload --unsafe${cr}  ${cd}·  Cmd+Shift+,${cr}"
+  if (( reload_ok == 0 )); then
+    _brow $(( 2 + 1 + 2 + 19 + 2 + 1 + 2 + 11 )) "  ${cd}↺${cr}  ${cb}${ca}boo reload --unsafe${cr}  ${cd}·  Cmd+Shift+,${cr}"
+  fi
   _bempty
   printf "  ${ca}╰${bar}╯${cr}\n"
   printf "\n"
@@ -1621,13 +1624,13 @@ cmd_theme() {
         exit 1
       fi
       apply_theme "$theme"
-      print_theme_applied_card "$theme"
-      cmd_reload > /dev/null 2>&1 || true
+      local _rok=0; unsafe_reload_via_keystroke 2>/dev/null && _rok=1
+      print_theme_applied_card "$theme" "$_rok"
       ;;
     obsidian|lunar|crimson|abyss|fallout)
       apply_theme "$action"
-      print_theme_applied_card "$action"
-      cmd_reload > /dev/null 2>&1 || true
+      local _rok=0; unsafe_reload_via_keystroke 2>/dev/null && _rok=1
+      print_theme_applied_card "$action" "$_rok"
       ;;
     *)
       printf 'Invalid theme command: %s\n' "$action" >&2
