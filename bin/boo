@@ -42,6 +42,7 @@ Usage:
   boo preview [<theme>|all] [--plain]
   boo splash [list|<name>|custom <file>|none|reset]
   boo doctor [check|fix]
+  boo uninstall [--yes]
   boo reload [--unsafe]
   boo status
   boo help
@@ -54,6 +55,7 @@ Commands:
   preview    Preview one theme or all themes (ANSI swatches or plain hex).
   splash     Configure startup splash art (built-in/custom/none/reset).
   doctor     Diagnose and optionally fix common setup issues.
+  uninstall  Remove Boo CLI/config and shell integration block.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
   status     Print current mode/theme/prompt/opacity.
   help       Show this help message.
@@ -256,16 +258,23 @@ doctor_file_hash() {
   cksum "$file" | awk '{print $1 "-" $2}'
 }
 
-doctor_clean_legacy_marked_block() {
+remove_marked_block() {
   local file="$1"
+  local start="$2"
+  local end="$3"
   local tmp
   tmp="$(mktemp)"
-  awk -v start="$LEGACY_BLOCK_START" -v end="$LEGACY_BLOCK_END" '
+  awk -v start="$start" -v end="$end" '
     $0 ~ start { skip = 1; next }
     $0 ~ end { skip = 0; next }
     skip != 1 { print }
   ' "$file" > "$tmp"
   mv "$tmp" "$file"
+}
+
+doctor_clean_legacy_marked_block() {
+  local file="$1"
+  remove_marked_block "$file" "$LEGACY_BLOCK_START" "$LEGACY_BLOCK_END"
 }
 
 doctor_remove_obsighost_lines() {
@@ -1444,6 +1453,86 @@ cmd_doctor() {
   esac
 }
 
+cmd_uninstall() {
+  local option="${1:-}"
+  local require_confirm=1
+  local reply=""
+  local removed_any=0
+
+  case "$option" in
+    '')
+      ;;
+    --yes|-y|yes)
+      require_confirm=0
+      ;;
+    help|-h|--help)
+      printf 'Usage: boo uninstall [--yes]\n'
+      printf 'Removes Boo CLI/config and Boo shell integration from ~/.zshrc.\n'
+      printf 'Ghostty config is left unchanged.\n'
+      return 0
+      ;;
+    *)
+      printf 'Invalid uninstall option: %s\n' "$option" >&2
+      printf 'Usage: boo uninstall [--yes]\n' >&2
+      exit 1
+      ;;
+  esac
+
+  if (( require_confirm == 1 )); then
+    printf 'This will remove Boo CLI/config and Boo shell integration from ~/.zshrc.\n'
+    printf 'Ghostty config files are left unchanged.\n'
+    printf 'Continue? [y/N] '
+    IFS= read -r reply || true
+    case "$reply" in
+      y|Y|yes|YES)
+        ;;
+      *)
+        printf 'Uninstall cancelled.\n'
+        return 1
+        ;;
+    esac
+  fi
+
+  if [[ -f "$ZSHRC_FILE" ]]; then
+    if grep -qF "$BOO_BLOCK_START" "$ZSHRC_FILE" && grep -qF "$BOO_BLOCK_END" "$ZSHRC_FILE"; then
+      remove_marked_block "$ZSHRC_FILE" "$BOO_BLOCK_START" "$BOO_BLOCK_END"
+      printf 'Removed Boo source block: %s\n' "$ZSHRC_FILE"
+      removed_any=1
+    fi
+  fi
+
+  if [[ -f "$LOCAL_BIN_FILE" ]]; then
+    rm -f "$LOCAL_BIN_FILE"
+    printf 'Removed CLI binary: %s\n' "$LOCAL_BIN_FILE"
+    removed_any=1
+  fi
+
+  if [[ -f "$OMP_ACTIVE_CONFIG" ]]; then
+    rm -f "$OMP_ACTIVE_CONFIG"
+    printf 'Removed prompt config: %s\n' "$OMP_ACTIVE_CONFIG"
+    removed_any=1
+  fi
+
+  if [[ -d "$CONFIG_DIR" ]]; then
+    rm -rf "$CONFIG_DIR"
+    printf 'Removed config directory: %s\n' "$CONFIG_DIR"
+    removed_any=1
+  fi
+
+  if command -v hash >/dev/null 2>&1; then
+    hash -r 2>/dev/null || true
+  fi
+
+  if (( removed_any == 0 )); then
+    printf 'Nothing to remove. Boo is already uninstalled.\n'
+    return 0
+  fi
+
+  printf '\nBoo uninstall complete.\n'
+  printf 'Run `exec zsh` to refresh your current shell.\n'
+  printf 'Ghostty config was left unchanged.\n'
+}
+
 cmd_status() {
   local mode
   mode="$(read_mode)"
@@ -1513,6 +1602,10 @@ case "$subcommand" in
   doctor)
     shift || true
     cmd_doctor "${1:-}"
+    ;;
+  uninstall)
+    shift || true
+    cmd_uninstall "${1:-}"
     ;;
   status)
     cmd_status
