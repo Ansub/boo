@@ -63,6 +63,11 @@ boo theme list
 boo theme graphite
 boo theme crimson
 boo theme matrix
+boo font
+boo font list
+boo font jetbrains
+boo font family "FiraCode Nerd Font"
+boo font size 15
 boo opacity 0.92
 boo opacity glass
 boo preview obsidian
@@ -88,6 +93,9 @@ boo status
 - `boo prompt set <native|omp>`: switches prompt engine (`native` is default).
 - `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`).
 - `boo theme <name>`: applies terminal colors + full `palette 0..255` + prompt palette + shell accent colors.
+- `boo font`: shows current Ghostty `font-family` and `font-size`.
+- `boo font list`: shows built-in font presets (`jetbrains`, `fira`, `meslo`, `hack`, `caskaydia`, `iosevka`).
+- `boo font <preset>|family <name>|size <value>`: sets font family or size in Ghostty config.
 - `boo opacity <value>`: sets `background-opacity` (`0.30` to `1.00`).
 - `boo opacity glass|solid`: quick presets (`0.92` / `1.00`).
 - `boo preview <theme>`: previews core theme colors with ANSI true-color swatches.
@@ -104,7 +112,7 @@ boo status
 - `boo reload`: safe apply guidance (does not open windows or touch running sessions).
 - `boo reload --unsafe`: attempts Ghostty `reload_config` via detected comma-based reload keybind (`Cmd+Shift+,` or `Cmd+,`).
 - `boo mode` prints current mode.
-- `boo status` prints mode, theme, prompt backend, opacity, and active config files.
+- `boo status` prints mode, theme, font, prompt backend, opacity, and active config files.
 
 Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, prompt backend in `~/.config/boo/prompt`, and splash in `~/.config/boo/splash.zsh`.
 Theme commands auto-run safe `boo reload`.
@@ -144,7 +152,7 @@ If reload is not working:
 - `configs/ghostty/config` - Ghostty config
 - `configs/ohmyposh/boo.omp.json` - prompt theme
 - `configs/ohmyposh/presets/*.omp.json` - prompt presets by theme
-- `bin/boo` - CLI for mode/theme/splash/opacity/status
+- `bin/boo` - CLI for mode/theme/font/splash/opacity/status
 - `shell/boo.zsh` - shell integration + startup panel
 - `art/*.txt` - built-in startup ASCII art
 - `scripts/install.sh` - installer
