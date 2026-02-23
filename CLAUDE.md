@@ -23,7 +23,6 @@ Every theme owns the entire 16-color ANSI palette. Text, errors, prompts, git st
 | Theme    | Identity                              | Background | Accent    |
 |----------|---------------------------------------|------------|-----------|
 | obsidian | Dark green-black + purple tint        | `#0b0f0b`  | `#a882ff` |
-| graphite | Dark neutral + gray                   | `#0f1115`  | `#b7a2ff` |
 | lunar    | Cold blue-gray                        | `#0a0f18`  | `#7cc6ff` |
 | crimson  | Everything bleeds red                 | `#120606`  | `#ff4f7a` |
 | matrix   | Full phosphor green commitment        | `#061206`  | `#00ff41` |
