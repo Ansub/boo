@@ -1584,7 +1584,7 @@ EOF
           family="${*:3}"
           set_font_family_value "$family"
           printf 'Font family set to: %s\n' "$family"
-          cmd_reload || true
+          cmd_reload --unsafe || true
           ;;
         size)
           if [[ $# -lt 3 ]]; then
@@ -1594,18 +1594,18 @@ EOF
           size="$(normalize_font_size "${3:-}")"
           set_font_size_value "$size"
           printf 'Font size set to: %s\n' "$size"
-          cmd_reload || true
+          cmd_reload --unsafe || true
           ;;
         *)
           if preset_family="$(resolve_font_preset_family "${2:-}")"; then
             set_font_family_value "$preset_family"
             printf 'Font preset applied: %s (%s)\n' "${2:-}" "$preset_family"
-            cmd_reload || true
+            cmd_reload --unsafe || true
           else
             family="${*:2}"
             set_font_family_value "$family"
             printf 'Font family set to: %s\n' "$family"
-            cmd_reload || true
+            cmd_reload --unsafe || true
           fi
           ;;
       esac
@@ -1618,7 +1618,7 @@ EOF
       family="${*:2}"
       set_font_family_value "$family"
       printf 'Font family set to: %s\n' "$family"
-      cmd_reload || true
+      cmd_reload --unsafe || true
       ;;
     size)
       if [[ $# -lt 2 ]]; then
@@ -1628,23 +1628,23 @@ EOF
       size="$(normalize_font_size "${2:-}")"
       set_font_size_value "$size"
       printf 'Font size set to: %s\n' "$size"
-      cmd_reload || true
+      cmd_reload --unsafe || true
       ;;
     *)
       if preset_family="$(resolve_font_preset_family "$action")"; then
         set_font_family_value "$preset_family"
         printf 'Font preset applied: %s (%s)\n' "$action" "$preset_family"
-        cmd_reload || true
+        cmd_reload --unsafe || true
       elif is_font_size_token "$action"; then
         size="$(normalize_font_size "$action")"
         set_font_size_value "$size"
         printf 'Font size set to: %s\n' "$size"
-        cmd_reload || true
+        cmd_reload --unsafe || true
       else
         family="$*"
         set_font_family_value "$family"
         printf 'Font family set to: %s\n' "$family"
-        cmd_reload || true
+        cmd_reload --unsafe || true
       fi
       ;;
   esac

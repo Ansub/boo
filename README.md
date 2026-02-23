@@ -117,6 +117,7 @@ boo status
 Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, prompt backend in `~/.config/boo/prompt`, and splash in `~/.config/boo/splash.zsh`.
 Theme commands auto-run safe `boo reload`.
 Opacity commands auto-run `boo reload --unsafe` for immediate apply attempts.
+Font commands auto-run `boo reload --unsafe` for immediate apply attempts.
 Theme accent state is stored in `~/.config/boo/theme.zsh`.
 Built-in splash art files are installed to `~/.config/boo/art/`; custom splash files are copied to `~/.config/boo/custom-splash.txt`.
 When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
