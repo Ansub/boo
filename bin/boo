@@ -1964,8 +1964,8 @@ cmd_uninstall() {
       ;;
     help|-h|--help)
       printf 'Usage: boo uninstall [--yes]\n'
-      printf 'Removes Boo CLI/config and Boo shell integration from ~/.zshrc.\n'
-      printf 'Ghostty config is left unchanged.\n'
+      printf 'Removes Boo CLI/config, shell integration, and resets Ghostty config.\n'
+      printf 'Ghostty config will be restored from backup or removed.\n'
       return 0
       ;;
     *)
@@ -1977,7 +1977,7 @@ cmd_uninstall() {
 
   if (( require_confirm == 1 )); then
     printf 'This will remove Boo CLI/config and Boo shell integration from ~/.zshrc.\n'
-    printf 'Ghostty config files are left unchanged.\n'
+    printf 'Ghostty config will be restored from backup or reset to defaults.\n'
     printf 'Continue? [y/N] '
     IFS= read -r reply || true
     case "$reply" in
@@ -2016,6 +2016,29 @@ cmd_uninstall() {
     removed_any=1
   fi
 
+  # Reset Ghostty config to default
+  local ghostty_paths=("$GHOSTTY_CONFIG_PRIMARY" "$GHOSTTY_CONFIG_MAC")
+  for gpath in "${ghostty_paths[@]}"; do
+    [[ -f "$gpath" ]] || continue
+    # Look for the most recent backup made by the installer
+    local latest_backup=""
+    local backup
+    for backup in "${gpath}.backup-"*; do
+      [[ -e "$backup" ]] || continue
+      if [[ -z "$latest_backup" || "$backup" -nt "$latest_backup" ]]; then
+        latest_backup="$backup"
+      fi
+    done
+    if [[ -n "$latest_backup" ]]; then
+      cp "$latest_backup" "$gpath"
+      printf 'Restored Ghostty config from backup: %s\n' "$latest_backup"
+    else
+      rm -f "$gpath"
+      printf 'Removed Boo Ghostty config: %s (Ghostty will use defaults)\n' "$gpath"
+    fi
+    removed_any=1
+  done
+
   if command -v hash >/dev/null 2>&1; then
     hash -r 2>/dev/null || true
   fi
@@ -2027,7 +2050,6 @@ cmd_uninstall() {
 
   printf '\nBoo uninstall complete.\n'
   printf 'Run `exec zsh` to refresh your current shell.\n'
-  printf 'Ghostty config was left unchanged.\n'
 }
 
 cmd_status() {
