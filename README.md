@@ -63,6 +63,7 @@ boo theme list
 boo theme graphite
 boo theme crimson
 boo theme matrix
+boo theme abyss
 boo font
 boo font list
 boo font jetbrains
@@ -91,7 +92,7 @@ boo status
 - `public`: hides identifying machine details for screenshots.
 - `boo prompt`: shows configured and active prompt backend.
 - `boo prompt set <native|omp>`: switches prompt engine (`native` is default).
-- `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`).
+- `boo theme list`: shows available color presets (`obsidian`, `graphite`, `lunar`, `crimson`, `matrix`, `abyss`).
 - `boo theme <name>`: applies terminal colors + full `palette 0..255` + prompt palette + shell accent colors.
 - `boo font`: shows current Ghostty `font-family` and `font-size`.
 - `boo font list`: shows built-in font presets (`jetbrains`, `fira`, `meslo`, `hack`, `caskaydia`, `iosevka`).
@@ -117,6 +118,7 @@ boo status
 Mode is persisted in `~/.config/boo/mode.zsh`, theme in `~/.config/boo/theme`, prompt backend in `~/.config/boo/prompt`, and splash in `~/.config/boo/splash.zsh`.
 Theme commands auto-run safe `boo reload`.
 Opacity commands auto-run `boo reload --unsafe` for immediate apply attempts.
+Font commands auto-run `boo reload --unsafe` for immediate apply attempts.
 Theme accent state is stored in `~/.config/boo/theme.zsh`.
 Built-in splash art files are installed to `~/.config/boo/art/`; custom splash files are copied to `~/.config/boo/custom-splash.txt`.
 When sourced via `shell/boo.zsh`, mode/theme/prompt changes sync into the current shell session immediately.
@@ -134,6 +136,7 @@ Theme intent:
 - `lunar`: cool blue-gray look with no purple accents.
 - `crimson`: high-contrast red assault mode.
 - `matrix`: aggressive hacker-green mode.
+- `abyss`: deep indigo void with violet-magenta accents.
 
 ## Reload Status
 
