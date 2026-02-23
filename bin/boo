@@ -38,6 +38,7 @@ Usage:
   boo mode [full|public]
   boo prompt [show|list|set <native|omp>|native|omp]
   boo theme [list|set <name>|<name>]
+  boo font [show|list|set <preset>|family <name>|size <value>|<preset>|<size>]
   boo opacity [value|glass|solid]
   boo preview [<theme>|all] [--plain]
   boo splash [list|<name>|custom <file>|none|reset]
@@ -51,13 +52,14 @@ Commands:
   mode       Show or set startup panel mode.
   prompt     Show or set shell prompt backend.
   theme      List or apply full terminal/prompt presets.
+  font       Show or set Ghostty font family/size presets.
   opacity    Show or set Ghostty background opacity.
   preview    Preview one theme or all themes (ANSI swatches or plain hex).
   splash     Configure startup splash art (built-in/custom/none/reset).
   doctor     Diagnose and optionally fix common setup issues.
   uninstall  Remove Boo CLI/config and shell integration block.
   reload     No new windows. Use --unsafe to send Cmd+Shift+, to Ghostty.
-  status     Print current mode/theme/prompt/opacity.
+  status     Print current mode/theme/font/prompt/opacity.
   help       Show this help message.
 EOF
 }
@@ -444,6 +446,7 @@ theme_accent_color() {
     lunar) printf '#7cc6ff\n' ;;
     crimson) printf '#ff4f7a\n' ;;
     matrix) printf '#00ff41\n' ;;
+    abyss) printf '#cc44ff\n' ;;
     *) printf '#a882ff\n' ;;
   esac
 }
@@ -456,6 +459,7 @@ theme_panel_rgb() {
     lunar) printf '124;198;255\n' ;;
     crimson) printf '255;79;122\n' ;;
     matrix) printf '0;255;65\n' ;;
+    abyss) printf '204;68;255\n' ;;
     *) printf '168;130;255\n' ;;
   esac
 }
@@ -506,6 +510,15 @@ fg=#00cc44
 accent=#00ff41
 cursor=#00ff41
 selection=#0d3d0d
+EOF
+      ;;
+    abyss)
+      cat <<'EOF'
+bg=#060412
+fg=#9966cc
+accent=#cc44ff
+cursor=#cc44ff
+selection=#2a0a4a
 EOF
       ;;
     *)
@@ -660,6 +673,16 @@ apply_prompt_theme() {
       tf_fg="#88ffcc"
       sysinfo_fg="#66ff88"
       git_bg="#0d3d0d"
+      ;;
+    abyss)
+      accent="#cc44ff"
+      chip_cloud_bg="#1a0a2e"
+      go_fg="#aa66ee"
+      az_fg="#cc44ff"
+      gcp_fg="#bb55ff"
+      tf_fg="#dd88ff"
+      sysinfo_fg="#cc77ee"
+      git_bg="#2a0a4a"
       ;;
     *)
       return 1
@@ -893,6 +916,27 @@ palette = 15=#ccffcc
 EOF
       emit_standard_palette_16_255
       ;;
+    abyss)
+      cat <<'EOF'
+palette = 0=#060412
+palette = 1=#3d0a6b
+palette = 2=#6622aa
+palette = 3=#9933cc
+palette = 4=#1a0a3a
+palette = 5=#cc44ff
+palette = 6=#aa33dd
+palette = 7=#ccaaee
+palette = 8=#1a0a2e
+palette = 9=#8833cc
+palette = 10=#aa44dd
+palette = 11=#dd66ff
+palette = 12=#5533aa
+palette = 13=#ee88ff
+palette = 14=#cc77ff
+palette = 15=#f0d0ff
+EOF
+      emit_standard_palette_16_255
+      ;;
     *)
       return 1
       ;;
@@ -957,6 +1001,98 @@ set_opacity_value() {
   for file in "${ghostty_targets[@]}"; do
     upsert_key "$file" "background-opacity" "$value"
   done
+}
+
+read_ghostty_key_value() {
+  local key="$1"
+  local default_value="${2:-}"
+  local file line value
+
+  collect_ghostty_targets
+  for file in "${ghostty_targets[@]}"; do
+    line="$(grep -m1 -E "^[[:space:]]*${key}[[:space:]]*=" "$file" || true)"
+    if [[ -n "$line" ]]; then
+      value="$(printf '%s\n' "$line" | sed -E 's/^[^=]+= *//; s/[[:space:]]+$//')"
+      printf '%s\n' "$value"
+      return 0
+    fi
+  done
+
+  if [[ -n "$default_value" ]]; then
+    printf '%s\n' "$default_value"
+    return 0
+  fi
+  return 1
+}
+
+current_font_family() {
+  read_ghostty_key_value "font-family" "JetBrainsMono Nerd Font"
+}
+
+current_font_size() {
+  read_ghostty_key_value "font-size" "14"
+}
+
+set_font_family_value() {
+  local family="$1"
+  local file
+
+  collect_ghostty_targets
+  for file in "${ghostty_targets[@]}"; do
+    upsert_key "$file" "font-family" "$family"
+  done
+}
+
+set_font_size_value() {
+  local size="$1"
+  local file
+
+  collect_ghostty_targets
+  for file in "${ghostty_targets[@]}"; do
+    upsert_key "$file" "font-size" "$size"
+  done
+}
+
+resolve_font_preset_family() {
+  local preset
+  preset="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$preset" in
+    jetbrains|jetbrainsmono|jb) printf '%s\n' 'JetBrainsMono Nerd Font' ;;
+    fira|firacode) printf '%s\n' 'FiraCode Nerd Font' ;;
+    meslo|meslolgs) printf '%s\n' 'MesloLGS Nerd Font' ;;
+    hack) printf '%s\n' 'Hack Nerd Font' ;;
+    caskaydia|cascadia) printf '%s\n' 'CaskaydiaCove Nerd Font' ;;
+    iosevka|iosevkaterm) printf '%s\n' 'IosevkaTerm Nerd Font' ;;
+    *) return 1 ;;
+  esac
+}
+
+is_font_size_token() {
+  local token="$1"
+  [[ "$token" =~ ^[0-9]+([.][0-9]+)?$ ]]
+}
+
+normalize_font_size() {
+  local input="$1"
+  local valid=0
+
+  if ! is_font_size_token "$input"; then
+    printf 'Invalid font size: %s\n' "$input" >&2
+    printf 'Use a value between 8 and 72 (example: 14 or 15.5).\n' >&2
+    exit 1
+  fi
+
+  if awk -v n="$input" 'BEGIN { if (n + 0 == n && n >= 8 && n <= 72) exit 0; exit 1 }'; then
+    valid=1
+  fi
+
+  if [[ "$valid" -ne 1 ]]; then
+    printf 'Invalid font size: %s\n' "$input" >&2
+    printf 'Use a value between 8 and 72 (example: 14 or 15.5).\n' >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$input"
 }
 
 reload_keybind_dispatch_mode() {
@@ -1248,9 +1384,18 @@ apply_theme() {
       selection_bg="#0d3d0d"
       selection_fg="#00ff88"
       ;;
+    abyss)
+      theme_name="Phala Green Dark"
+      background="#060412"
+      foreground="#9966cc"
+      cursor_color="#cc44ff"
+      cursor_text="#000000"
+      selection_bg="#2a0a4a"
+      selection_fg="#ee88ff"
+      ;;
     *)
       printf 'Invalid theme: %s\n' "$theme" >&2
-      printf 'Use: obsidian, graphite, lunar, crimson, matrix\n' >&2
+      printf 'Use: obsidian, graphite, lunar, crimson, matrix, abyss\n' >&2
       exit 1
       ;;
   esac
@@ -1375,11 +1520,12 @@ Available themes:
   lunar     - Cool blue-gray, no purple accents
   crimson   - High-contrast red assault mode
   matrix    - Aggressive hacker-green mode
+  abyss     - Deep indigo void, violet-to-magenta spectrum
 EOF
       ;;
     set)
       if [[ -z "$theme" ]]; then
-        printf 'Usage: boo theme set <obsidian|graphite|lunar|crimson|matrix>\n' >&2
+        printf 'Usage: boo theme set <obsidian|graphite|lunar|crimson|matrix|abyss>\n' >&2
         exit 1
       fi
       apply_theme "$theme"
@@ -1388,7 +1534,7 @@ EOF
       print_shell_apply_hint
       cmd_reload || true
       ;;
-    obsidian|graphite|lunar|crimson|matrix)
+    obsidian|graphite|lunar|crimson|matrix|abyss)
       apply_theme "$action"
       printf 'Boo theme set to: %s\n' "$action"
       printf 'Prompt + syntax accents updated.\n'
@@ -1399,6 +1545,107 @@ EOF
       printf 'Invalid theme command: %s\n' "$action" >&2
       printf 'Usage: boo theme [list|set <name>|<name>]\n' >&2
       exit 1
+      ;;
+  esac
+}
+
+cmd_font() {
+  local action="${1:-}"
+  local preset_family family size
+
+  case "$action" in
+    ''|show|status)
+      printf 'Current font family: %s\n' "$(current_font_family)"
+      printf 'Current font size: %s\n' "$(current_font_size)"
+      printf 'Usage: boo font [show|list|set <preset>|family <name>|size <value>|<preset>|<size>]\n'
+      ;;
+    list)
+      cat <<'EOF'
+Available font presets:
+  jetbrains  - JetBrainsMono Nerd Font
+  fira       - FiraCode Nerd Font
+  meslo      - MesloLGS Nerd Font
+  hack       - Hack Nerd Font
+  caskaydia  - CaskaydiaCove Nerd Font
+  iosevka    - IosevkaTerm Nerd Font
+EOF
+      ;;
+    set)
+      if [[ $# -lt 2 ]]; then
+        printf 'Usage: boo font set <preset>|family <name>|size <value>\n' >&2
+        exit 1
+      fi
+      case "${2:-}" in
+        family)
+          if [[ $# -lt 3 ]]; then
+            printf 'Usage: boo font set family <name>\n' >&2
+            exit 1
+          fi
+          family="${*:3}"
+          set_font_family_value "$family"
+          printf 'Font family set to: %s\n' "$family"
+          cmd_reload --unsafe || true
+          ;;
+        size)
+          if [[ $# -lt 3 ]]; then
+            printf 'Usage: boo font set size <value>\n' >&2
+            exit 1
+          fi
+          size="$(normalize_font_size "${3:-}")"
+          set_font_size_value "$size"
+          printf 'Font size set to: %s\n' "$size"
+          cmd_reload --unsafe || true
+          ;;
+        *)
+          if preset_family="$(resolve_font_preset_family "${2:-}")"; then
+            set_font_family_value "$preset_family"
+            printf 'Font preset applied: %s (%s)\n' "${2:-}" "$preset_family"
+            cmd_reload --unsafe || true
+          else
+            family="${*:2}"
+            set_font_family_value "$family"
+            printf 'Font family set to: %s\n' "$family"
+            cmd_reload --unsafe || true
+          fi
+          ;;
+      esac
+      ;;
+    family)
+      if [[ $# -lt 2 ]]; then
+        printf 'Usage: boo font family <name>\n' >&2
+        exit 1
+      fi
+      family="${*:2}"
+      set_font_family_value "$family"
+      printf 'Font family set to: %s\n' "$family"
+      cmd_reload --unsafe || true
+      ;;
+    size)
+      if [[ $# -lt 2 ]]; then
+        printf 'Usage: boo font size <value>\n' >&2
+        exit 1
+      fi
+      size="$(normalize_font_size "${2:-}")"
+      set_font_size_value "$size"
+      printf 'Font size set to: %s\n' "$size"
+      cmd_reload --unsafe || true
+      ;;
+    *)
+      if preset_family="$(resolve_font_preset_family "$action")"; then
+        set_font_family_value "$preset_family"
+        printf 'Font preset applied: %s (%s)\n' "$action" "$preset_family"
+        cmd_reload --unsafe || true
+      elif is_font_size_token "$action"; then
+        size="$(normalize_font_size "$action")"
+        set_font_size_value "$size"
+        printf 'Font size set to: %s\n' "$size"
+        cmd_reload --unsafe || true
+      else
+        family="$*"
+        set_font_family_value "$family"
+        printf 'Font family set to: %s\n' "$family"
+        cmd_reload --unsafe || true
+      fi
       ;;
   esac
 }
@@ -1425,7 +1672,7 @@ cmd_preview() {
   local target=""
   local token
   local plain=0
-  local themes=(obsidian graphite lunar crimson matrix)
+  local themes=(obsidian graphite lunar crimson matrix abyss)
   local theme
 
   for token in "$@"; do
@@ -1435,24 +1682,24 @@ cmd_preview() {
       --plain|-p)
         plain=1
         ;;
-      obsidian|graphite|lunar|crimson|matrix|all)
+      obsidian|graphite|lunar|crimson|matrix|abyss|all)
         if [[ -n "$target" ]]; then
           printf 'Only one preview target can be used at a time.\n' >&2
-          printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n' >&2
+          printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|abyss|all> [--plain]\n' >&2
           exit 1
         fi
         target="$token"
         ;;
       *)
         printf 'Invalid preview option/target: %s\n' "$token" >&2
-        printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n' >&2
+        printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|abyss|all> [--plain]\n' >&2
         exit 1
         ;;
     esac
   done
 
   if [[ -z "$target" ]]; then
-    printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|all> [--plain]\n'
+    printf 'Usage: boo preview <obsidian|graphite|lunar|crimson|matrix|abyss|all> [--plain]\n'
     return
   fi
 
@@ -1644,10 +1891,15 @@ cmd_status() {
   local theme accent
   theme="$(read_theme_file)"
   accent="$(theme_accent_color "$theme")"
+  local font_family font_size
+  font_family="$(current_font_family)"
+  font_size="$(current_font_size)"
   collect_ghostty_targets
   printf 'mode: %s\n' "$mode"
   printf 'theme: %s\n' "$theme"
   printf 'accent: %s\n' "$accent"
+  printf 'font_family: %s\n' "$font_family"
+  printf 'font_size: %s\n' "$font_size"
   printf 'prompt_backend: %s\n' "$(read_prompt_backend)"
   printf 'prompt_backend_effective: %s\n' "$(effective_prompt_backend)"
   printf 'splash: %s\n' "$(read_splash_name)"
@@ -1681,11 +1933,15 @@ case "$subcommand" in
     shift || true
     cmd_theme "${1:-}" "${2:-}"
     ;;
+  font)
+    shift || true
+    cmd_font "$@"
+    ;;
   prompt)
     shift || true
     cmd_prompt "${1:-}" "${2:-}"
     ;;
-  obsidian|graphite|lunar|crimson|matrix)
+  obsidian|graphite|lunar|crimson|matrix|abyss)
     cmd_theme "$subcommand"
     ;;
   opacity)
