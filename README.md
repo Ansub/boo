@@ -26,20 +26,28 @@ Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 ### One-line install
 
 ```bash
-curl -fsSL https://boo.ansub.co/install.sh | bash
-source ~/.zshrc
+curl -fsSL https://boo.ansub.co/install.sh | bash && source ~/.zshrc
 ```
 
-Then open a new Ghostty window.
+Then apply config now with either:
+- press `Cmd+Shift+,` in Ghostty, or
+- run `boo reload --unsafe`
+
+If needed, open a new Ghostty window.
 
 ### Install from source
 
 ```bash
 git clone https://github.com/Ansub/boo.git
 cd boo
-./scripts/install.sh
-source ~/.zshrc
+./scripts/install.sh && source ~/.zshrc
 ```
+
+Then apply config now with either:
+- press `Cmd+Shift+,` in Ghostty, or
+- run `boo reload --unsafe`
+
+If needed, open a new Ghostty window.
 
 ## First 5 Minutes
 
