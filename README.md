@@ -8,7 +8,7 @@ Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
 
 - Ghostty visual config with theme-tinted dark backgrounds
 - Full ANSI `palette 0..255` written on theme apply
-- Theme presets: `obsidian`, `lunar`, `crimson`, `matrix`, `abyss`
+- Theme presets: `obsidian`, `lunar`, `crimson`, `matrix`, `abyss`, `fallout`
 - Dual prompts: native zsh (default) and optional `oh-my-posh`
 - Startup dashboard + splash art controls
 - Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor
@@ -124,6 +124,7 @@ boo uninstall --yes
 - `crimson`: high-contrast red mode
 - `matrix`: aggressive hacker-green mode
 - `abyss`: deep indigo with violet-magenta accents
+- `fallout`: RobCo Industries phosphor CRT — warm amber-lime on near-black
 
 ## Font Notes (Important)
 
