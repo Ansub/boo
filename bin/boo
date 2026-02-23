@@ -35,8 +35,6 @@ print_help() {
   theme="$(cat "$THEME_FILE" 2>/dev/null || printf 'obsidian')"
   accent="$(theme_accent_color "$theme")"
   rgb="$(hex_to_rgb "$accent")"
-  IFS=';' read -r r2 g2 b2 <<< "$rgb"
-  local r1=$(( r2 / 8 )) g1=$(( g2 / 8 )) b1=$(( b2 / 8 ))
 
   local ca="\033[38;2;${rgb}m"
   local cb="\033[1m"
@@ -45,66 +43,35 @@ print_help() {
   local cv="\033[38;5;252m"
   local cr="\033[0m"
 
-  local inner=58
-  local bar; bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
-
-  _brow() {
-    local vis="$1" content="$2"
-    local pad=$(( inner - vis )); (( pad < 0 )) && pad=0
-    printf "  ${ca}│${cr}%b%${pad}s${ca}│${cr}\n" "$content" ""
-  }
-  _bempty() { printf "  ${ca}│${cr}%${inner}s${ca}│${cr}\n" ""; }
-  _bdiv()   { printf "  ${ca}├${bar}┤${cr}\n"; }
-
-  # Command row: cmd(9) · args(18) · desc
-  _cmd() {
+  # cmd(9) · args(18) · desc
+  _hcmd() {
     local cmd="$1" args="$2" desc="$3"
     local cp=$(( 9  - ${#cmd}  )); (( cp < 0 )) && cp=0
     local ap=$(( 18 - ${#args} )); (( ap < 0 )) && ap=0
-    local vis=$(( 2 + ${#cmd} + cp + 2 + ${#args} + ap + 2 + ${#desc} ))
-    local row
-    row="  ${cb}${ca}${cmd}${cr}$(printf '%*s' $cp '')  ${cd}${args}${cr}$(printf '%*s' $ap '')  ${cv}${desc}${cr}"
-    _brow $vis "$row"
+    printf "  ${cb}${ca}${cmd}${cr}$(printf '%*s' $cp '')  ${cd}${args}${cr}$(printf '%*s' $ap '')  ${cv}${desc}${cr}\n"
   }
 
-  # Gradient bar
-  local grad="" i gr gg gb
-  for (( i = 0; i < inner; i++ )); do
-    gr=$(( r1 + (r2 - r1) * i / (inner - 1) ))
-    gg=$(( g1 + (g2 - g1) * i / (inner - 1) ))
-    gb=$(( b1 + (b2 - b1) * i / (inner - 1) ))
-    grad+="\033[48;2;${gr};${gg};${gb}m \033[0m"
-  done
-
-  # Title: "boo" left + tagline right
-  local tagline="ghostty terminal toolkit"
-  local t_mid=$(( inner - 5 - ${#tagline} - 2 ))
-  (( t_mid < 0 )) && t_mid=0
-  local title_row
-  title_row="$(printf "  ${cb}${ca}boo${cr}%${t_mid}s${cd}${tagline}${cr}  " "")"
-
   printf "\n"
-  printf "  ${ca}╭${bar}╮${cr}\n"
-  _brow $inner "$grad"
-  _brow $inner "$title_row"
-  _bdiv
-  _bempty
-  _cmd "theme"     "[<name> · list]"    "apply themes & ANSI palette"
-  _cmd "font"      "[<preset> · size]"  "font family & size"
-  _cmd "opacity"   "[glass · solid]"    "background opacity"
-  _cmd "splash"    "[<name> · none]"    "startup splash art"
-  _cmd "prompt"    "[native · omp]"     "shell prompt backend"
-  _cmd "mode"      "[full · public]"    "startup panel mode"
-  _bempty
-  _cmd "status"    ""                   "current config at a glance"
-  _cmd "preview"   "[<theme> · all]"    "ANSI color swatches"
-  _cmd "reload"    "[--unsafe]"         "reload Ghostty config"
-  _cmd "doctor"    "[fix]"              "diagnose & fix issues"
-  _cmd "uninstall" ""                   "remove boo completely"
-  _bempty
-  _bdiv
-  _brow 46 "  ${cd}boo theme list  ·  boo status  ·  boo doctor${cr}"
-  printf "  ${ca}╰${bar}╯${cr}\n"
+  printf "  ${cb}${ca}boo${cr}  ${cd}ghostty terminal toolkit${cr}\n"
+  printf "\n"
+  printf "  ${cl}configure${cr}\n"
+  printf "\n"
+  _hcmd "theme"     "[<name> · list]"    "apply themes & ANSI palette"
+  _hcmd "font"      "[<preset> · size]"  "font family & size"
+  _hcmd "opacity"   "[glass · solid]"    "background opacity"
+  _hcmd "splash"    "[<name> · none]"    "startup splash art"
+  _hcmd "prompt"    "[native · omp]"     "shell prompt backend"
+  _hcmd "mode"      "[full · public]"    "startup panel mode"
+  printf "\n"
+  printf "  ${cl}tools${cr}\n"
+  printf "\n"
+  _hcmd "status"    ""                   "current config at a glance"
+  _hcmd "preview"   "[<theme> · all]"    "ANSI color swatches"
+  _hcmd "reload"    "[--unsafe]"         "reload Ghostty config"
+  _hcmd "doctor"    "[fix]"              "diagnose & fix issues"
+  _hcmd "uninstall" ""                   "remove boo completely"
+  printf "\n"
+  printf "  ${cd}boo theme list  ·  boo status  ·  boo doctor${cr}\n"
   printf "\n"
 }
 
