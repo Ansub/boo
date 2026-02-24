@@ -180,6 +180,10 @@ mkdir -p "$HOME/.config/boo/art"
 cp "$REPO_DIR"/art/*.txt "$HOME/.config/boo/art/"
 log_ok "Installed splash art: ~/.config/boo/art/"
 
+mkdir -p "$HOME/.config/boo/themes"
+cp "$REPO_DIR"/themes/*.theme "$HOME/.config/boo/themes/"
+log_ok "Installed themes: ~/.config/boo/themes/"
+
 log_section "Defaults"
 if [[ ! -f "$HOME/.config/boo/theme.zsh" ]]; then
   cat > "$HOME/.config/boo/theme.zsh" <<'THEMEBLOCK'

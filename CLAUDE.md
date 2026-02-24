@@ -31,15 +31,14 @@ Every theme owns the entire 16-color ANSI palette. Text, errors, prompts, git st
 
 **abyss** was directly inspired by the Pastel Ghost / Abyss album cover — deep indigo-black background, all 16 ANSI colors live between dark indigo (`#3d0a6b`) and bright magenta-violet (`#f0d0ff`). All body text is purple-tinted (`#9966cc`).
 
-### When adding a new theme, touch all of these:
+### When adding a new theme:
 
-1. `theme_accent_color()` — hex accent
-2. `theme_panel_rgb()` — RGB for shell panel (R;G;B format)
-3. `theme_core_colors()` — bg/fg/accent/cursor/selection for preview swatches
-4. `apply_theme()` — Ghostty config values (background, foreground, cursor, selection)
-5. `theme_palette_lines()` — full 16-color ANSI palette (all in the theme's spectrum)
-6. `apply_prompt_theme()` — oh-my-posh color overrides
-7. Theme list string in `cmd_theme()`, routing in `case` statements, `cmd_preview()`, `local themes=(...)`, and the subcommand dispatcher at the bottom
+1. Create `themes/<name>.theme` in the repo.
+2. Include required keys: `description`, `accent`, `bg`, `fg`, `cursor`, `cursor_text`, `selection_bg`, `selection_fg`, `pal_0..pal_15`.
+3. Optional keys: `ui_dim`, `ui_label`, `ui_value`, and `omp_*` prompt colors.
+4. Run `boo theme list`, `boo preview <name>`, and `boo theme <name>` to verify.
+
+No `bin/boo` routing or case-statement edits are needed. Themes are auto-discovered from `~/.config/boo/themes/`.
 
 ---
 
@@ -80,7 +79,7 @@ The CLI output should feel **designed**, not like debug output. Key principles:
 ## Code Conventions
 
 - Single bash file: `bin/boo` — no splitting into multiple files
-- All theme data is in pure bash `case` statements — no config files, no JSON
+- Theme data lives in `themes/*.theme` files (installed to `~/.config/boo/themes/`)
 - `upsert_key()` handles all Ghostty config writes (idempotent, creates if missing)
 - `collect_ghostty_targets()` must be called before touching Ghostty configs — handles both `~/Library/...` (macOS) and `~/.config/ghostty/config`
 - `hex_to_rgb()` returns `R;G;B` format, usable directly in ANSI escape codes: `\033[38;2;${rgb}m`
@@ -96,6 +95,7 @@ The CLI output should feel **designed**, not like debug output. Key principles:
 bin/boo                          — the entire CLI (single bash file)
 shell/boo.zsh                    — shell integration + startup panel (sourced in ~/.zshrc)
 art/*.txt                        — built-in ASCII splash art files
+themes/*.theme                  — built-in theme definition files
 configs/ghostty/                 — reference Ghostty config
 configs/ohmyposh/                — oh-my-posh theme presets
 scripts/install.sh               — installer script
@@ -105,6 +105,7 @@ scripts/install.sh               — installer script
   mode.zsh                       — BOO_SHOW_PRIVATE
   prompt                         — native or omp
   splash.zsh                     — BOO_SPLASH
+  themes/*.theme                 — runtime theme files (auto-discovered)
   boo.zsh                        — shell snippet (copied from shell/boo.zsh)
   art/                           — built-in splash art (copied from art/)
   custom-splash.txt              — user's custom splash (if set)

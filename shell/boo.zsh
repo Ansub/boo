@@ -154,7 +154,7 @@ boo() {
     prompt)
       boo_apply_prompt_backend
       ;;
-    theme|obsidian|lunar|crimson|abyss|fallout)
+    theme)
       if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
         source "$HOME/.config/boo/theme.zsh"
       fi
@@ -176,6 +176,13 @@ boo() {
       esac
       ;;
     *)
+      if [[ -n "${1:-}" && -f "$HOME/.config/boo/themes/${1}.theme" ]]; then
+        if [[ -f "$HOME/.config/boo/theme.zsh" ]]; then
+          source "$HOME/.config/boo/theme.zsh"
+        fi
+        boo_apply_prompt_backend
+        boo_apply_highlight_colors
+      fi
       ;;
   esac
 
