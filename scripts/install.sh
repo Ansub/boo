@@ -129,6 +129,24 @@ mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/boo" "$
 log_ok "Ensured config directories under ~/.config and ~/.local/bin"
 
 log_section "Ghostty"
+
+# Save user customizations from existing Ghostty config before overwriting.
+PREV_FONT_FAMILY=""
+PREV_FONT_SIZE=""
+PREV_OPACITY=""
+for _cfg in "$PRIMARY_GHOSTTY" "$MAC_GHOSTTY"; do
+  [[ -f "$_cfg" ]] || continue
+  if [[ -z "$PREV_FONT_FAMILY" ]]; then
+    PREV_FONT_FAMILY="$(sed -nE 's/^[[:space:]]*font-family[[:space:]]*=[[:space:]]*(.+)/\1/p' "$_cfg" | head -n1)"
+  fi
+  if [[ -z "$PREV_FONT_SIZE" ]]; then
+    PREV_FONT_SIZE="$(sed -nE 's/^[[:space:]]*font-size[[:space:]]*=[[:space:]]*(.+)/\1/p' "$_cfg" | head -n1)"
+  fi
+  if [[ -z "$PREV_OPACITY" ]]; then
+    PREV_OPACITY="$(sed -nE 's/^[[:space:]]*background-opacity[[:space:]]*=[[:space:]]*(.+)/\1/p' "$_cfg" | head -n1)"
+  fi
+done
+
 if [[ -f "$PRIMARY_GHOSTTY" ]] && [[ ! -f "$GHOSTTY_ORIGINAL_PRIMARY" ]]; then
   if is_boo_ghostty_config "$PRIMARY_GHOSTTY"; then
     log_skip "Original Ghostty backup skipped (already Boo-managed): $(short_path "$PRIMARY_GHOSTTY")"
@@ -158,6 +176,37 @@ if [[ -f "$MAC_GHOSTTY" ]]; then
   log_ok "Installed Ghostty config: $(short_path "$MAC_GHOSTTY")"
 else
   log_info "Skipped macOS app-support Ghostty config (file not present)"
+fi
+
+# Restore user font/opacity customizations into freshly installed Ghostty configs.
+restore_ghostty_key() {
+  local key="$1" value="$2" file="$3"
+  local tmp
+  tmp="$(mktemp)"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { re = "^[[:space:]]*" key "[[:space:]]*="; done = 0 }
+    $0 ~ re { if (!done) { print key " = " value; done = 1 }; next }
+    { print }
+    END { if (!done) print key " = " value }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+RESTORE_TARGETS=("$PRIMARY_GHOSTTY")
+[[ -f "$MAC_GHOSTTY" ]] && RESTORE_TARGETS+=("$MAC_GHOSTTY")
+for _cfg in "${RESTORE_TARGETS[@]}"; do
+  if [[ -n "$PREV_FONT_FAMILY" ]]; then
+    restore_ghostty_key "font-family" "$PREV_FONT_FAMILY" "$_cfg"
+  fi
+  if [[ -n "$PREV_FONT_SIZE" ]]; then
+    restore_ghostty_key "font-size" "$PREV_FONT_SIZE" "$_cfg"
+  fi
+  if [[ -n "$PREV_OPACITY" ]]; then
+    restore_ghostty_key "background-opacity" "$PREV_OPACITY" "$_cfg"
+  fi
+done
+if [[ -n "$PREV_FONT_FAMILY" || -n "$PREV_FONT_SIZE" || -n "$PREV_OPACITY" ]]; then
+  log_ok "Restored user settings: font=${PREV_FONT_FAMILY:-default} size=${PREV_FONT_SIZE:-default} opacity=${PREV_OPACITY:-default}"
 fi
 
 log_section "Prompt and shell assets"
@@ -246,6 +295,20 @@ ZSHBLOCK
   log_ok "Added Boo source block to ~/.zshrc"
 else
   log_skip "Boo source block already exists in ~/.zshrc"
+fi
+
+log_section "Applying saved theme"
+SAVED_THEME=""
+if [[ -f "$HOME/.config/boo/theme" ]]; then
+  SAVED_THEME="$(tr -d '[:space:]' < "$HOME/.config/boo/theme")"
+fi
+if [[ -z "$SAVED_THEME" ]]; then
+  SAVED_THEME="abyss"
+fi
+if BOO_NO_AUTO_APPLY=1 "$HOME/.local/bin/boo" theme "$SAVED_THEME" >/dev/null 2>&1; then
+  log_ok "Re-applied theme: $SAVED_THEME"
+else
+  log_skip "Could not re-apply theme: $SAVED_THEME (run: boo theme $SAVED_THEME)"
 fi
 
 printf "\n%sInstall complete.%s\n\n" "$C_OK" "$C_RESET"
