@@ -931,8 +931,9 @@ EOF
 
 apply_prompt_theme() {
   local theme="$1"
-  local preset="${OMP_PRESET_DIR}/${theme}.omp.json"
   local tmp
+  local base_preset=""
+  local first_preset
 
   local accent chip_cloud_bg go_fg az_fg gcp_fg tf_fg sysinfo_fg git_bg
   if ! load_theme "$theme"; then
@@ -947,42 +948,58 @@ apply_prompt_theme() {
   sysinfo_fg="${_T_omp_sysinfo_fg}"
   git_bg="${_T_omp_git_bg}"
 
-  # Prefer in-place patching to preserve any user prompt customizations.
-  if [[ -f "$OMP_ACTIVE_CONFIG" ]] && command -v jq >/dev/null 2>&1; then
-    tmp="$(mktemp)"
-    jq \
-      --arg accent "$accent" \
-      --arg chip_cloud_bg "$chip_cloud_bg" \
-      --arg go_fg "$go_fg" \
-      --arg az_fg "$az_fg" \
-      --arg gcp_fg "$gcp_fg" \
-      --arg tf_fg "$tf_fg" \
-      --arg sysinfo_fg "$sysinfo_fg" \
-      --arg git_bg "$git_bg" \
-      '
-      .palette.accent = $accent
-      | .palette.chip_cloud_bg = $chip_cloud_bg
-      | (.blocks[].segments[] | select(.type=="go")).foreground = $go_fg
-      | (.blocks[].segments[] | select(.type=="az")).foreground = $az_fg
-      | (.blocks[].segments[] | select(.type=="gcp")).foreground = $gcp_fg
-      | (.blocks[].segments[] | select(.type=="terraform")).foreground = $tf_fg
-      | (.blocks[].segments[] | select(.type=="sysinfo")).foreground = $sysinfo_fg
-      | (.blocks[].segments[] | select(.type=="git").background_templates[1]) = $git_bg
-      ' \
-      "$OMP_ACTIVE_CONFIG" > "$tmp"
-    mv "$tmp" "$OMP_ACTIVE_CONFIG"
-    return 0
-  fi
+  if [[ ! -f "$OMP_ACTIVE_CONFIG" ]]; then
+    if [[ -f "${OMP_PRESET_DIR}/abyss.omp.json" ]]; then
+      base_preset="${OMP_PRESET_DIR}/abyss.omp.json"
+    else
+      for first_preset in "$OMP_PRESET_DIR"/*.omp.json; do
+        [[ -e "$first_preset" ]] || continue
+        base_preset="$first_preset"
+        break
+      done
+    fi
 
-  if [[ -f "$preset" ]]; then
+    if [[ -z "$base_preset" || ! -f "$base_preset" ]]; then
+      printf 'Prompt preset not found in: %s\n' "$OMP_PRESET_DIR" >&2
+      printf 'Run installer to install theme presets.\n' >&2
+      return 1
+    fi
+
     mkdir -p "$(dirname "$OMP_ACTIVE_CONFIG")"
-    cp "$preset" "$OMP_ACTIVE_CONFIG"
+    cp "$base_preset" "$OMP_ACTIVE_CONFIG"
+  fi
+
+  if ! command -v jq >/dev/null 2>&1; then
     return 0
   fi
 
-  printf 'Prompt preset not found: %s\n' "$preset" >&2
-  printf 'Run installer to install theme presets.\n' >&2
-  return 1
+  tmp="$(mktemp)"
+  if ! jq \
+    --arg accent "$accent" \
+    --arg chip_cloud_bg "$chip_cloud_bg" \
+    --arg go_fg "$go_fg" \
+    --arg az_fg "$az_fg" \
+    --arg gcp_fg "$gcp_fg" \
+    --arg tf_fg "$tf_fg" \
+    --arg sysinfo_fg "$sysinfo_fg" \
+    --arg git_bg "$git_bg" \
+    '
+    .palette.accent = $accent
+    | .palette.chip_cloud_bg = $chip_cloud_bg
+    | (.blocks[].segments[] | select(.type=="go")).foreground = $go_fg
+    | (.blocks[].segments[] | select(.type=="az")).foreground = $az_fg
+    | (.blocks[].segments[] | select(.type=="gcp")).foreground = $gcp_fg
+    | (.blocks[].segments[] | select(.type=="terraform")).foreground = $tf_fg
+    | (.blocks[].segments[] | select(.type=="sysinfo")).foreground = $sysinfo_fg
+    | (.blocks[].segments[] | select(.type=="git").background_templates[1]) = $git_bg
+    ' \
+    "$OMP_ACTIVE_CONFIG" > "$tmp"; then
+    rm -f "$tmp"
+    printf 'Failed to patch prompt config: %s\n' "$OMP_ACTIVE_CONFIG" >&2
+    return 1
+  fi
+  mv "$tmp" "$OMP_ACTIVE_CONFIG"
+  return 0
 }
 
 is_boo_ghostty_config_file() {
