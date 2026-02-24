@@ -1904,11 +1904,12 @@ cmd_theme_delete() {
     exit 1
   fi
 
-  # warn if deleting the active theme
   local active
   active="$(read_theme_file)"
+  local is_active=0
   if [[ "$active" == "$name" ]]; then
-    printf "\n  ${_cd}'%s' is the active theme — you'll need to switch after deleting${_cr}\n" "$name"
+    is_active=1
+    printf "\n  ${_cd}'%s' is the active theme — will switch to %s after deleting${_cr}\n" "$name" "$DEFAULT_THEME"
   fi
 
   printf "\n  ${_cv}delete theme '%s'?${_cr} ${_cd}[y/n]${_cr} " "$name"
@@ -1917,7 +1918,14 @@ cmd_theme_delete() {
   case "$reply" in
     [yY]|[yY]es)
       rm -f "$file"
-      printf "  ${_ca}✓${_cr}  ${_cv}deleted %s${_cr}\n\n" "$name"
+      printf "  ${_ca}✓${_cr}  ${_cv}deleted %s${_cr}\n" "$name"
+      if (( is_active )); then
+        _LOADED_THEME=""
+        apply_theme "$DEFAULT_THEME"
+        printf "  ${_ca}✓${_cr}  ${_cv}switched to %s${_cr}\n" "$DEFAULT_THEME"
+        cmd_reload > /dev/null 2>&1 || true
+      fi
+      printf "\n"
       ;;
     *)
       printf "  ${_cd}cancelled${_cr}\n\n"
