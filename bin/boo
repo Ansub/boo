@@ -1870,8 +1870,22 @@ cmd_theme_delete() {
   _init_ui "$_t"
 
   if [[ -z "$name" ]]; then
-    printf "\n  ${_cv}usage:${_cr} ${_ca}boo theme delete <name>${_cr}\n\n" >&2
-    exit 1
+    local tname accent_rgb count=0
+    printf "\n  ${_cd}DELETABLE THEMES${_cr}\n\n"
+    while IFS= read -r tname; do
+      [[ -n "$tname" ]] || continue
+      is_builtin_theme "$tname" && continue
+      if load_theme "$tname" 2>/dev/null; then
+        accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '180;180;180')"
+        printf "  ${_cb}\033[38;2;%sm%-10s${_cr}  ${_cv}%s${_cr}\n" "$accent_rgb" "$tname" "$_T_description"
+        count=$((count + 1))
+      fi
+    done < <(list_theme_names)
+    if (( count == 0 )); then
+      printf "  ${_cd}no user-created themes to delete${_cr}\n"
+    fi
+    printf "\n"
+    return
   fi
 
   if ! theme_file_for_name "$name" >/dev/null 2>&1; then
