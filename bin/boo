@@ -63,7 +63,7 @@ print_help() {
   printf "\n"
   printf "  ${cl}CONFIGURE${cr}\n"
   printf "\n"
-  _hcmd "theme"     "[<name> · list]"    "apply themes & ANSI palette"
+  _hcmd "theme"     "[<name> · list · create · delete]"  "apply themes & ANSI palette"
   _hcmd "font"      "[<preset> · size]"  "font family & size"
   _hcmd "opacity"   "[glass · solid]"    "background opacity"
   _hcmd "splash"    "[<name> · none]"    "startup splash art"
@@ -826,6 +826,145 @@ hex_to_rgb() {
   fi
   printf '%d;%d;%d\n' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
 }
+
+# ── color math (pure bash integer arithmetic) ───────────────────────
+
+hex_to_r() { printf '%d' "0x${1:1:2}"; }
+hex_to_g() { printf '%d' "0x${1:3:2}"; }
+hex_to_b() { printf '%d' "0x${1:5:2}"; }
+
+rgb_to_hex() {
+  printf '#%02x%02x%02x' "$1" "$2" "$3"
+}
+
+# blend_color hex1 hex2 ratio  (ratio 0-1000: 0=hex1, 1000=hex2)
+blend_color() {
+  local r1 g1 b1 r2 g2 b2 t="$3"
+  r1=$(hex_to_r "$1"); g1=$(hex_to_g "$1"); b1=$(hex_to_b "$1")
+  r2=$(hex_to_r "$2"); g2=$(hex_to_g "$2"); b2=$(hex_to_b "$2")
+  local r=$(( (r1 * (1000 - t) + r2 * t) / 1000 ))
+  local g=$(( (g1 * (1000 - t) + g2 * t) / 1000 ))
+  local b=$(( (b1 * (1000 - t) + b2 * t) / 1000 ))
+  (( r > 255 )) && r=255; (( r < 0 )) && r=0
+  (( g > 255 )) && g=255; (( g < 0 )) && g=0
+  (( b > 255 )) && b=255; (( b < 0 )) && b=0
+  rgb_to_hex "$r" "$g" "$b"
+}
+
+# tint_white: near-white ceiling tinted toward the accent hue
+tint_white() {
+  local r g b max
+  r=$(hex_to_r "$1"); g=$(hex_to_g "$1"); b=$(hex_to_b "$1")
+  max=$r; (( g > max )) && max=$g; (( b > max )) && max=$b
+  (( max == 0 )) && max=1
+  # scale channels so max→255, then blend 80% toward pure white
+  local sr=$(( r * 255 / max ))
+  local sg=$(( g * 255 / max ))
+  local sb=$(( b * 255 / max ))
+  local wr=$(( (sr * 200 + 255 * 800) / 1000 ))
+  local wg=$(( (sg * 200 + 255 * 800) / 1000 ))
+  local wb=$(( (sb * 200 + 255 * 800) / 1000 ))
+  (( wr > 255 )) && wr=255; (( wg > 255 )) && wg=255; (( wb > 255 )) && wb=255
+  rgb_to_hex "$wr" "$wg" "$wb"
+}
+
+generate_theme() {
+  local accent="$1" name="$2"
+  local tw
+  tw="$(tint_white "$accent")"
+
+  local bg fg sel_bg sel_fg
+  bg="$(blend_color "$accent" "#000000" 930)"
+  fg="$(blend_color "$accent" "$tw" 450)"
+  sel_bg="$(blend_color "$accent" "#000000" 820)"
+  sel_fg="$(blend_color "$accent" "$tw" 750)"
+
+  local p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15
+  p0="$bg"
+  p1="$(blend_color "#000000" "$accent" 200)"
+  p2="$(blend_color "#000000" "$accent" 350)"
+  p3="$(blend_color "#000000" "$accent" 500)"
+  p4="$(blend_color "#000000" "$accent" 130)"
+  p5="$accent"
+  p6="$(blend_color "#000000" "$accent" 620)"
+  p7="$(blend_color "$accent" "$tw" 400)"
+  p8="$(blend_color "$accent" "#000000" 890)"
+  p9="$(blend_color "#000000" "$accent" 450)"
+  p10="$(blend_color "#000000" "$accent" 580)"
+  p11="$(blend_color "#000000" "$accent" 750)"
+  p12="$(blend_color "#000000" "$accent" 300)"
+  p13="$(blend_color "$accent" "$tw" 300)"
+  p14="$(blend_color "$accent" "$tw" 180)"
+  p15="$(blend_color "$accent" "$tw" 750)"
+
+  local omp_cloud omp_go omp_az omp_gcp omp_tf omp_sys omp_git
+  omp_cloud="$(blend_color "$accent" "#000000" 800)"
+  omp_go="$(blend_color "$accent" "$tw" 250)"
+  omp_az="$accent"
+  omp_gcp="$(blend_color "$accent" "$tw" 150)"
+  omp_tf="$(blend_color "$accent" "$tw" 350)"
+  omp_sys="$(blend_color "$accent" "$tw" 200)"
+  omp_git="$(blend_color "$accent" "#000000" 750)"
+
+  # auto-description from dominant channel
+  local r g b desc_adj max min spread
+  r=$(hex_to_r "$accent"); g=$(hex_to_g "$accent"); b=$(hex_to_b "$accent")
+  max=$r; (( g > max )) && max=$g; (( b > max )) && max=$b
+  min=$r; (( g < min )) && min=$g; (( b < min )) && min=$b
+  spread=$(( max - min ))
+  if (( spread < 30 )); then
+    desc_adj="neutral"
+  elif (( r >= g && r >= b )); then
+    if (( g > b + 40 )); then desc_adj="warm amber"
+    elif (( b > g + 40 )); then desc_adj="cool rose"
+    else desc_adj="warm red"
+    fi
+  elif (( g >= r && g >= b )); then
+    if (( r > b + 40 )); then desc_adj="earthy green"
+    elif (( b > r + 40 )); then desc_adj="cool teal"
+    else desc_adj="verdant green"
+    fi
+  else
+    if (( r > g + 40 )); then desc_adj="vivid violet"
+    elif (( g > r + 40 )); then desc_adj="cool indigo"
+    else desc_adj="deep blue"
+    fi
+  fi
+
+  printf 'description=%s %s - generated theme\n' "$desc_adj" "$name"
+  printf 'accent=%s\n' "$accent"
+  printf 'bg=%s\n' "$bg"
+  printf 'fg=%s\n' "$fg"
+  printf 'cursor=%s\n' "$accent"
+  printf 'cursor_text=#000000\n'
+  printf 'selection_bg=%s\n' "$sel_bg"
+  printf 'selection_fg=%s\n' "$sel_fg"
+  printf 'omp_chip_cloud_bg=%s\n' "$omp_cloud"
+  printf 'omp_go_fg=%s\n' "$omp_go"
+  printf 'omp_az_fg=%s\n' "$omp_az"
+  printf 'omp_gcp_fg=%s\n' "$omp_gcp"
+  printf 'omp_tf_fg=%s\n' "$omp_tf"
+  printf 'omp_sysinfo_fg=%s\n' "$omp_sys"
+  printf 'omp_git_bg=%s\n' "$omp_git"
+  printf 'pal_0=%s\n' "$p0"
+  printf 'pal_1=%s\n' "$p1"
+  printf 'pal_2=%s\n' "$p2"
+  printf 'pal_3=%s\n' "$p3"
+  printf 'pal_4=%s\n' "$p4"
+  printf 'pal_5=%s\n' "$p5"
+  printf 'pal_6=%s\n' "$p6"
+  printf 'pal_7=%s\n' "$p7"
+  printf 'pal_8=%s\n' "$p8"
+  printf 'pal_9=%s\n' "$p9"
+  printf 'pal_10=%s\n' "$p10"
+  printf 'pal_11=%s\n' "$p11"
+  printf 'pal_12=%s\n' "$p12"
+  printf 'pal_13=%s\n' "$p13"
+  printf 'pal_14=%s\n' "$p14"
+  printf 'pal_15=%s\n' "$p15"
+}
+
+# ── end color math ──────────────────────────────────────────────────
 
 print_color_swatch_line() {
   local label="$1"
@@ -1626,6 +1765,174 @@ cmd_prompt() {
   esac
 }
 
+cmd_theme_create() {
+  local accent="" name=""
+
+  # parse flags
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --accent) accent="${2:-}"; shift 2 ;;
+      --name)   name="${2:-}";   shift 2 ;;
+      *)        shift ;;
+    esac
+  done
+
+  local _t
+  _t="$(read_theme_file)"
+  _init_ui "$_t"
+
+  printf "\n"
+
+  # interactive prompts if flags not provided
+  if [[ -z "$accent" ]]; then
+    printf "  ${_cv}accent${_cr}    ${_cd}hex color e.g. #ff6a1a${_cr}\n"
+    printf "  ${_ca}›${_cr} "
+    read -r accent
+    accent="$(trim_ws "$accent")"
+  fi
+
+  # validate accent
+  if [[ ! "$accent" =~ ^#[0-9A-Fa-f]{6}$ ]]; then
+    printf "\n  ${_cv}invalid hex — must be #RRGGBB${_cr}\n\n" >&2
+    exit 1
+  fi
+
+  if [[ -z "$name" ]]; then
+    printf "  ${_cv}name${_cr}      ${_cd}lowercase, a-z 0-9 dashes${_cr}\n"
+    printf "  ${_ca}›${_cr} "
+    read -r name
+    name="$(trim_ws "$name")"
+  fi
+
+  # validate name
+  if [[ ! "$name" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    printf "\n  ${_cv}invalid name — use lowercase a-z, 0-9, dashes${_cr}\n\n" >&2
+    exit 1
+  fi
+
+  # check collision
+  if theme_file_for_name "$name" >/dev/null 2>&1; then
+    printf "\n  ${_cv}theme '%s' already exists${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  # generate
+  local tmpfile
+  tmpfile="$(mktemp)"
+  generate_theme "$accent" "$name" > "$tmpfile"
+
+  # validate by loading it
+  mkdir -p "$THEMES_DIR"
+  cp "$tmpfile" "${THEMES_DIR}/${name}.theme"
+  rm -f "$tmpfile"
+
+  _LOADED_THEME=""
+  if ! load_theme "$name"; then
+    rm -f "${THEMES_DIR}/${name}.theme"
+    printf "\n  ${_cv}generated theme failed validation: %s${_cr}\n\n" "$_THEME_LOAD_ERROR" >&2
+    exit 1
+  fi
+
+  # preview
+  local accent_rgb
+  accent_rgb="$(hex_to_rgb "$accent")"
+  printf "\n  ${_cb}\033[38;2;%sm%s${_cr}  ${_cd}%s${_cr}\n\n" "$accent_rgb" "$name" "$_T_description"
+  print_theme_preview "$name"
+
+  printf "  ${_cv}saved to${_cr} ${_cd}%s${_cr}\n\n" "${THEMES_DIR}/${name}.theme"
+
+  # ask to apply
+  printf "  ${_cv}apply now?${_cr} ${_cd}[y/n]${_cr} "
+  local reply
+  read -r reply
+  case "$reply" in
+    [yY]|[yY]es)
+      apply_theme "$name"
+      print_theme_applied_card "$name"
+      cmd_reload > /dev/null 2>&1 || true
+      ;;
+    *)
+      printf "\n  ${_cd}theme saved — apply later with:${_cr} ${_ca}boo theme %s${_cr}\n\n" "$name"
+      ;;
+  esac
+}
+
+is_builtin_theme() {
+  local name="$1" file
+  file="$(theme_file_for_name "$name" 2>/dev/null)" || return 1
+  head -n1 "$file" | grep -q '^# builtin'
+}
+
+cmd_theme_delete() {
+  local name="${1:-}"
+  local _t
+  _t="$(read_theme_file)"
+  _init_ui "$_t"
+
+  if [[ -z "$name" ]]; then
+    local tname accent_rgb count=0
+    printf "\n  ${_cd}DELETABLE THEMES${_cr}\n\n"
+    while IFS= read -r tname; do
+      [[ -n "$tname" ]] || continue
+      is_builtin_theme "$tname" && continue
+      if load_theme "$tname" 2>/dev/null; then
+        accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '180;180;180')"
+        printf "  ${_cb}\033[38;2;%sm%-10s${_cr}  ${_cv}%s${_cr}\n" "$accent_rgb" "$tname" "$_T_description"
+        count=$((count + 1))
+      fi
+    done < <(list_theme_names)
+    if (( count == 0 )); then
+      printf "  ${_cd}no user-created themes to delete${_cr}\n"
+    fi
+    printf "\n"
+    return
+  fi
+
+  if ! theme_file_for_name "$name" >/dev/null 2>&1; then
+    printf "\n  ${_cv}theme '%s' not found${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  if is_builtin_theme "$name"; then
+    printf "\n  ${_cv}cannot delete built-in theme '%s'${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  local file="${THEMES_DIR}/${name}.theme"
+  if [[ ! -f "$file" ]]; then
+    printf "\n  ${_cv}theme '%s' not found in user themes${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  local active
+  active="$(read_theme_file)"
+  local is_active=0
+  if [[ "$active" == "$name" ]]; then
+    is_active=1
+    printf "\n  ${_cd}'%s' is the active theme — will switch to %s after deleting${_cr}\n" "$name" "$DEFAULT_THEME"
+  fi
+
+  printf "\n  ${_cv}delete theme '%s'?${_cr} ${_cd}[y/n]${_cr} " "$name"
+  local reply
+  read -r reply
+  case "$reply" in
+    [yY]|[yY]es)
+      rm -f "$file"
+      printf "  ${_ca}✓${_cr}  ${_cv}deleted %s${_cr}\n" "$name"
+      if (( is_active )); then
+        _LOADED_THEME=""
+        apply_theme "$DEFAULT_THEME"
+        printf "  ${_ca}✓${_cr}  ${_cv}switched to %s${_cr}\n" "$DEFAULT_THEME"
+        cmd_reload > /dev/null 2>&1 || true
+      fi
+      printf "\n"
+      ;;
+    *)
+      printf "  ${_cd}cancelled${_cr}\n\n"
+      ;;
+  esac
+}
+
 cmd_theme() {
   local action="${1:-}"
   local theme="${2:-}"
@@ -1637,6 +1944,15 @@ cmd_theme() {
       _t="$(read_theme_file)"
       _init_ui "$_t"
       printf "\n  ${_cd}theme${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$_t"
+      ;;
+    create)
+      shift || true
+      cmd_theme_create "$@"
+      return
+      ;;
+    delete|remove)
+      cmd_theme_delete "$theme"
+      return
       ;;
     list)
       local _t name accent_rgb count
@@ -2322,7 +2638,7 @@ case "$subcommand" in
     ;;
   theme)
     shift || true
-    cmd_theme "${1:-}" "${2:-}"
+    cmd_theme "$@"
     ;;
   font)
     shift || true
