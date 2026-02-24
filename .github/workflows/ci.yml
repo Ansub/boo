@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Syntax + Theme Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: |
+          set -euo pipefail
+          if ! command -v zsh >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y zsh
+          fi
+
+      - name: Shell syntax checks
+        run: |
+          set -euo pipefail
+          bash -n bin/boo
+          bash -n scripts/install.sh
+          bash -n install.sh
+          zsh -n shell/boo.zsh
+
+      - name: Theme validation (repo mode)
+        run: |
+          set -euo pipefail
+          tmp_home="$(mktemp -d)"
+          export HOME="$tmp_home"
+          ./bin/boo theme list >/dev/null
+          ./bin/boo preview all --plain >/dev/null
+
+          for theme_file in themes/*.theme; do
+            theme="${theme_file##*/}"
+            theme="${theme%.theme}"
+            ./bin/boo preview "$theme" --plain >/dev/null
+          done
+
+      - name: Install smoke test
+        run: |
+          set -euo pipefail
+          tmp_home="$(mktemp -d)"
+          export HOME="$tmp_home"
+          bash scripts/install.sh >/dev/null
+          "$HOME/.local/bin/boo" theme list >/dev/null
+          "$HOME/.local/bin/boo" preview all --plain >/dev/null
+
+          count=0
+          for theme_file in "$HOME/.config/boo/themes/"*.theme; do
+            [[ -e "$theme_file" ]] || continue
+            theme="${theme_file##*/}"
+            theme="${theme%.theme}"
+            "$HOME/.local/bin/boo" theme "$theme" >/dev/null
+            count=$((count + 1))
+          done
+
+          if [[ "$count" -eq 0 ]]; then
+            echo "No installed themes found under $HOME/.config/boo/themes" >&2
+            exit 1
+          fi
