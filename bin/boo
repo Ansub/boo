@@ -874,9 +874,9 @@ generate_theme() {
   tw="$(tint_white "$accent")"
 
   local bg fg sel_bg sel_fg
-  bg="$(blend_color "$accent" "#000000" 960)"
+  bg="$(blend_color "$accent" "#000000" 930)"
   fg="$(blend_color "$accent" "$tw" 450)"
-  sel_bg="$(blend_color "$accent" "#000000" 850)"
+  sel_bg="$(blend_color "$accent" "#000000" 820)"
   sel_fg="$(blend_color "$accent" "$tw" 750)"
 
   local p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15
@@ -888,7 +888,7 @@ generate_theme() {
   p5="$accent"
   p6="$(blend_color "#000000" "$accent" 620)"
   p7="$(blend_color "$accent" "$tw" 400)"
-  p8="$(blend_color "$accent" "#000000" 920)"
+  p8="$(blend_color "$accent" "#000000" 890)"
   p9="$(blend_color "#000000" "$accent" 450)"
   p10="$(blend_color "#000000" "$accent" 580)"
   p11="$(blend_color "#000000" "$accent" 750)"
