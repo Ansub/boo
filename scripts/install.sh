@@ -134,6 +134,8 @@ log_section "Ghostty"
 PREV_FONT_FAMILY=""
 PREV_FONT_SIZE=""
 PREV_OPACITY=""
+PREV_PRIMARY_CONFIG_SNAPSHOT=""
+PREV_MAC_CONFIG_SNAPSHOT=""
 for _cfg in "$PRIMARY_GHOSTTY" "$MAC_GHOSTTY"; do
   [[ -f "$_cfg" ]] || continue
   if [[ -z "$PREV_FONT_FAMILY" ]]; then
@@ -146,6 +148,15 @@ for _cfg in "$PRIMARY_GHOSTTY" "$MAC_GHOSTTY"; do
     PREV_OPACITY="$(sed -nE 's/^[[:space:]]*background-opacity[[:space:]]*=[[:space:]]*(.+)/\1/p' "$_cfg" | head -n1)"
   fi
 done
+
+if [[ -f "$PRIMARY_GHOSTTY" ]]; then
+  PREV_PRIMARY_CONFIG_SNAPSHOT="$(mktemp)"
+  cp "$PRIMARY_GHOSTTY" "$PREV_PRIMARY_CONFIG_SNAPSHOT"
+fi
+if [[ -f "$MAC_GHOSTTY" ]]; then
+  PREV_MAC_CONFIG_SNAPSHOT="$(mktemp)"
+  cp "$MAC_GHOSTTY" "$PREV_MAC_CONFIG_SNAPSHOT"
+fi
 
 if [[ -f "$PRIMARY_GHOSTTY" ]] && [[ ! -f "$GHOSTTY_ORIGINAL_PRIMARY" ]]; then
   if is_boo_ghostty_config "$PRIMARY_GHOSTTY"; then
@@ -190,6 +201,12 @@ restore_ghostty_key() {
     END { if (!done) print key " = " value }
   ' "$file" > "$tmp"
   mv "$tmp" "$file"
+}
+
+restore_ghostty_snapshot() {
+  local target="$1" snapshot="$2"
+  [[ -n "$snapshot" && -f "$snapshot" ]] || return 1
+  cp "$snapshot" "$target"
 }
 
 RESTORE_TARGETS=("$PRIMARY_GHOSTTY")
@@ -305,11 +322,37 @@ fi
 if [[ -z "$SAVED_THEME" ]]; then
   SAVED_THEME="abyss"
 fi
-if BOO_NO_AUTO_APPLY=1 "$HOME/.local/bin/boo" theme "$SAVED_THEME" >/dev/null 2>&1; then
+if [[ ! -f "$HOME/.config/boo/themes/${SAVED_THEME}.theme" ]]; then
+  restored=0
+  if restore_ghostty_snapshot "$PRIMARY_GHOSTTY" "$PREV_PRIMARY_CONFIG_SNAPSHOT"; then
+    restored=$((restored + 1))
+  fi
+  if restore_ghostty_snapshot "$MAC_GHOSTTY" "$PREV_MAC_CONFIG_SNAPSHOT"; then
+    restored=$((restored + 1))
+  fi
+  if (( restored > 0 )); then
+    log_skip "Saved theme '$SAVED_THEME' not found. Restored previous Ghostty config to avoid drift."
+  else
+    log_skip "Saved theme '$SAVED_THEME' not found. Run: boo theme <name>"
+  fi
+elif BOO_NO_AUTO_APPLY=1 "$HOME/.local/bin/boo" theme "$SAVED_THEME" >/dev/null 2>&1; then
   log_ok "Re-applied theme: $SAVED_THEME"
 else
-  log_skip "Could not re-apply theme: $SAVED_THEME (run: boo theme $SAVED_THEME)"
+  restored=0
+  if restore_ghostty_snapshot "$PRIMARY_GHOSTTY" "$PREV_PRIMARY_CONFIG_SNAPSHOT"; then
+    restored=$((restored + 1))
+  fi
+  if restore_ghostty_snapshot "$MAC_GHOSTTY" "$PREV_MAC_CONFIG_SNAPSHOT"; then
+    restored=$((restored + 1))
+  fi
+  if (( restored > 0 )); then
+    log_skip "Saved theme '$SAVED_THEME' is invalid. Restored previous Ghostty config to avoid drift."
+  else
+    log_skip "Saved theme '$SAVED_THEME' is invalid. Run: boo preview $SAVED_THEME --plain"
+  fi
 fi
+
+rm -f "$PREV_PRIMARY_CONFIG_SNAPSHOT" "$PREV_MAC_CONFIG_SNAPSHOT"
 
 printf "\n%sInstall complete.%s\n\n" "$C_OK" "$C_RESET"
 printf "%sSummary:%s ok=%d skip=%d backup=%d info=%d error=%d\n\n" \

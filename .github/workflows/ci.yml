@@ -97,3 +97,40 @@ jobs:
             echo "No installed themes found under $HOME/.config/boo/themes" >&2
             exit 1
           fi
+
+      - name: Upgrade preserves active theme
+        run: |
+          set -euo pipefail
+          tmp_home="$(mktemp -d)"
+          export HOME="$tmp_home"
+
+          bash scripts/install.sh >/dev/null
+          "$HOME/.local/bin/boo" theme crimson >/dev/null
+
+          before_theme="$(tr -d '[:space:]' < "$HOME/.config/boo/theme")"
+          before_bg="$(sed -nE 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*(.+)/\1/p' "$HOME/.config/ghostty/config" | head -n1)"
+
+          bash scripts/install.sh >/dev/null
+
+          after_theme="$(tr -d '[:space:]' < "$HOME/.config/boo/theme")"
+          after_bg="$(sed -nE 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*(.+)/\1/p' "$HOME/.config/ghostty/config" | head -n1)"
+
+          [[ "$before_theme" == "crimson" ]] || { echo "Expected before_theme=crimson, got: $before_theme" >&2; exit 1; }
+          [[ "$after_theme" == "$before_theme" ]] || { echo "Theme drifted on upgrade: before=$before_theme after=$after_theme" >&2; exit 1; }
+          [[ "$after_bg" == "$before_bg" ]] || { echo "Ghostty background drifted on upgrade: before=$before_bg after=$after_bg" >&2; exit 1; }
+
+      - name: Upgrade handles missing saved theme without drift
+        run: |
+          set -euo pipefail
+          tmp_home="$(mktemp -d)"
+          export HOME="$tmp_home"
+
+          bash scripts/install.sh >/dev/null
+          "$HOME/.local/bin/boo" theme crimson >/dev/null
+          before_bg="$(sed -nE 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*(.+)/\1/p' "$HOME/.config/ghostty/config" | head -n1)"
+
+          printf 'missing-theme\n' > "$HOME/.config/boo/theme"
+          bash scripts/install.sh >/dev/null
+          after_bg="$(sed -nE 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*(.+)/\1/p' "$HOME/.config/ghostty/config" | head -n1)"
+
+          [[ "$after_bg" == "$before_bg" ]] || { echo "Config drifted when saved theme was missing: before=$before_bg after=$after_bg" >&2; exit 1; }
