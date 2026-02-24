@@ -63,7 +63,7 @@ print_help() {
   printf "\n"
   printf "  ${cl}CONFIGURE${cr}\n"
   printf "\n"
-  _hcmd "theme"     "[<name> · list · create]"  "apply themes & ANSI palette"
+  _hcmd "theme"     "[<name> · list · create · delete]"  "apply themes & ANSI palette"
   _hcmd "font"      "[<preset> · size]"  "font family & size"
   _hcmd "opacity"   "[glass · solid]"    "background opacity"
   _hcmd "splash"    "[<name> · none]"    "startup splash art"
@@ -1857,6 +1857,60 @@ cmd_theme_create() {
   esac
 }
 
+is_builtin_theme() {
+  local name="$1" file
+  file="$(theme_file_for_name "$name" 2>/dev/null)" || return 1
+  head -n1 "$file" | grep -q '^# builtin'
+}
+
+cmd_theme_delete() {
+  local name="${1:-}"
+  local _t
+  _t="$(read_theme_file)"
+  _init_ui "$_t"
+
+  if [[ -z "$name" ]]; then
+    printf "\n  ${_cv}usage:${_cr} ${_ca}boo theme delete <name>${_cr}\n\n" >&2
+    exit 1
+  fi
+
+  if ! theme_file_for_name "$name" >/dev/null 2>&1; then
+    printf "\n  ${_cv}theme '%s' not found${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  if is_builtin_theme "$name"; then
+    printf "\n  ${_cv}cannot delete built-in theme '%s'${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  local file="${THEMES_DIR}/${name}.theme"
+  if [[ ! -f "$file" ]]; then
+    printf "\n  ${_cv}theme '%s' not found in user themes${_cr}\n\n" "$name" >&2
+    exit 1
+  fi
+
+  # warn if deleting the active theme
+  local active
+  active="$(read_theme_file)"
+  if [[ "$active" == "$name" ]]; then
+    printf "\n  ${_cd}'%s' is the active theme — you'll need to switch after deleting${_cr}\n" "$name"
+  fi
+
+  printf "\n  ${_cv}delete theme '%s'?${_cr} ${_cd}[y/n]${_cr} " "$name"
+  local reply
+  read -r reply
+  case "$reply" in
+    [yY]|[yY]es)
+      rm -f "$file"
+      printf "  ${_ca}✓${_cr}  ${_cv}deleted %s${_cr}\n\n" "$name"
+      ;;
+    *)
+      printf "  ${_cd}cancelled${_cr}\n\n"
+      ;;
+  esac
+}
+
 cmd_theme() {
   local action="${1:-}"
   local theme="${2:-}"
@@ -1872,6 +1926,10 @@ cmd_theme() {
     create)
       shift || true
       cmd_theme_create "$@"
+      return
+      ;;
+    delete|remove)
+      cmd_theme_delete "$theme"
       return
       ;;
     list)
