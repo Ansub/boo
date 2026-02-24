@@ -70,3 +70,30 @@ jobs:
             echo "No installed themes found under $HOME/.config/boo/themes" >&2
             exit 1
           fi
+
+      - name: Prompt fallback works for all themes
+        run: |
+          set -euo pipefail
+          tmp_home="$(mktemp -d)"
+          export HOME="$tmp_home"
+          bash scripts/install.sh >/dev/null
+
+          count=0
+          for theme_file in "$HOME/.config/boo/themes/"*.theme; do
+            [[ -e "$theme_file" ]] || continue
+            theme="${theme_file##*/}"
+            theme="${theme%.theme}"
+
+            rm -f "$HOME/.config/ohmyposh/boo.omp.json"
+            "$HOME/.local/bin/boo" theme "$theme" >/dev/null
+            [[ -s "$HOME/.config/ohmyposh/boo.omp.json" ]] || {
+              echo "Prompt config was not created for theme: $theme" >&2
+              exit 1
+            }
+            count=$((count + 1))
+          done
+
+          if [[ "$count" -eq 0 ]]; then
+            echo "No installed themes found under $HOME/.config/boo/themes" >&2
+            exit 1
+          fi
