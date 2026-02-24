@@ -35,17 +35,11 @@ UNSAFE_RELOAD_REASON=""
 ghostty_targets=()
 
 print_help() {
-  local theme accent rgb
+  local theme
   theme="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  accent="$(theme_accent_color "$theme")"
-  rgb="$(hex_to_rgb "$accent")"
+  _init_ui "$theme"
 
-  local ca="\033[38;2;${rgb}m"
-  local cb="\033[1m"
-  local cd="\033[38;5;237m"
-  local cl="\033[38;5;244m"
-  local cv="\033[38;5;252m"
-  local cr="\033[0m"
+  local ca="$_ca" cb="$_cb" cd="$_cd" cl="$_cl" cv="$_cv" cr="$_cr"
 
   # cmd(9) · args(18) · desc
   _hcmd() {
@@ -209,27 +203,24 @@ print_command_box() {
 }
 
 print_shell_apply_hint() {
+  local _t
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _init_ui "$_t"
   if [[ "${BOO_SHELL_WRAPPER:-0}" == "1" ]]; then
-    printf "  \033[38;5;82m✓\033[0m  \033[38;5;252mapplied in this shell\033[0m\n\n"
+    printf "  \033[38;5;82m✓\033[0m  ${_cv}applied in this shell${_cr}\n\n"
     return
   fi
-  printf "  \033[38;5;237mrun\033[0m  \033[1;38;5;252mexec zsh\033[0m  \033[38;5;237mto apply in this shell\033[0m\n\n"
+  printf "  ${_cd}run${_cr}  ${_cb}${_cv}exec zsh${_cr}  ${_cd}to apply in this shell${_cr}\n\n"
 }
 
 print_theme_applied_card() {
   local theme="$1"
-  local accent rgb
-  accent="$(theme_accent_color "$theme")"
-  rgb="$(hex_to_rgb "$accent")"
+  _init_ui "$theme"
+  local accent="$_a" rgb="$_rgb"
   IFS=';' read -r r2 g2 b2 <<< "$rgb"
   local r1=$(( r2 / 8 )) g1=$(( g2 / 8 )) b1=$(( b2 / 8 ))
 
-  local ca="\033[38;2;${rgb}m"
-  local cb="\033[1m"
-  local cd="\033[38;5;237m"
-  local cl="\033[38;5;244m"
-  local cv="\033[38;5;252m"
-  local cr="\033[0m"
+  local ca="$_ca" cb="$_cb" cd="$_cd" cl="$_cl" cv="$_cv" cr="$_cr"
 
   local inner=46
   local bar; bar="$(printf '%*s' "$inner" '' | tr ' ' '─')"
@@ -322,9 +313,9 @@ doctor_line() {
       ;;
   esac
 
-  printf "  ${esc}${icon}\033[0m  \033[38;5;252m%s\033[0m\n" "$title"
+  printf "  ${esc}${icon}\033[0m  ${_cv}%s${_cr}\n" "$title"
   if [[ -n "$detail" ]]; then
-    printf "       \033[38;5;237m%s\033[0m\n" "$detail"
+    printf "       ${_cd}%s${_cr}\n" "$detail"
   fi
 }
 
@@ -412,7 +403,7 @@ doctor_apply_fixes() {
   local script_dir script_root snippet_source
   local old_backend
 
-  printf "\n  \033[38;5;244mAPPLYING FIXES\033[0m\n\n"
+  printf "\n  ${_cl}APPLYING FIXES${_cr}\n\n"
   mkdir -p "$CONFIG_DIR" "$LOCAL_BIN_DIR"
 
   doctor_ensure_zshrc_path_and_block
@@ -466,7 +457,7 @@ doctor_run_checks() {
   local refs
 
   doctor_reset_counts
-  printf "\n  \033[38;5;244mDOCTOR\033[0m\n\n"
+  printf "\n  ${_cl}DOCTOR${_cr}\n\n"
 
   if [[ -x "$LOCAL_BIN_FILE" ]]; then
     doctor_line ok "CLI binary exists" "$LOCAL_BIN_FILE"
@@ -528,7 +519,7 @@ doctor_run_checks() {
   local _ok_c="\033[38;5;82m" _warn_c="\033[38;5;214m" _fail_c="\033[38;5;244m"
   (( doctor_fail_count > 0 )) && _fail_c="\033[38;5;196m"
   (( doctor_warn_count > 0 )) && _warn_c="\033[38;5;214m"
-  printf "\n  \033[38;5;244m%b%d ok\033[38;5;244m  ·  %b%d warn\033[38;5;244m  ·  %b%d fail\033[0m\n\n" \
+  printf "\n  ${_cl}%b%d ok${_cl}  ·  %b%d warn${_cl}  ·  %b%d fail${_cr}\n\n" \
     "$_ok_c" "$doctor_ok_count" "$_warn_c" "$doctor_warn_count" "$_fail_c" "$doctor_fail_count"
   if (( doctor_fail_count > 0 )); then
     return 1
@@ -544,6 +535,7 @@ theme_accent_color() {
     crimson) printf '#ff4f7a\n' ;;
     abyss) printf '#cc44ff\n' ;;
     fallout) printf '#4af626\n' ;;
+    clay) printf '#c4553a\n' ;;
     *) printf '#cc44ff\n' ;;
   esac
 }
@@ -556,7 +548,34 @@ theme_panel_rgb() {
     crimson) printf '255;79;122\n' ;;
     abyss) printf '204;68;255\n' ;;
     fallout) printf '74;246;38\n' ;;
+    clay) printf '196;85;58\n' ;;
     *) printf '204;68;255\n' ;;
+  esac
+}
+
+# Sets standard UI color escape vars for themed output.
+# After calling: _ca=accent _cb=bold _cd=dim _cl=label _cv=value _cr=reset
+_init_ui() {
+  local theme="$1"
+  local accent rgb
+  accent="$(theme_accent_color "$theme")"
+  rgb="$(hex_to_rgb "$accent")"
+  _ca="\033[38;2;${rgb}m"
+  _cb="\033[1m"
+  _cr="\033[0m"
+  _a="$accent"
+  _rgb="$rgb"
+  case "$theme" in
+    clay)
+      _cd="\033[38;2;175;162;145m"
+      _cl="\033[38;2;148;132;115m"
+      _cv="\033[38;2;75;65;58m"
+      ;;
+    *)
+      _cd="\033[38;5;237m"
+      _cl="\033[38;5;244m"
+      _cv="\033[38;5;252m"
+      ;;
   esac
 }
 
@@ -606,6 +625,15 @@ fg=#18ba0e
 accent=#4af626
 cursor=#4af626
 selection=#091509
+EOF
+      ;;
+    clay)
+      cat <<'EOF'
+bg=#f5efe6
+fg=#3e3330
+accent=#c4553a
+cursor=#c4553a
+selection=#e4d5c2
 EOF
       ;;
     *)
@@ -686,13 +714,8 @@ print_preview_all_row() {
     values+=("${line#*=}")
   done < <(theme_core_colors "$theme")
 
-  accent="$(theme_accent_color "$theme")"
-  accent_rgb="$(hex_to_rgb "$accent")"
-
-  local ca="\033[38;2;${accent_rgb}m"
-  local cb="\033[1m"
-  local cd="\033[38;5;237m"
-  local cr="\033[0m"
+  _init_ui "$theme"
+  local ca="$_ca" cb="$_cb" cd="$_cd" cr="$_cr"
 
   # Line 1: theme name in its accent color + wide swatches + dim hint
   printf "  ${cb}${ca}%-12s${cr}" "$theme"
@@ -780,6 +803,16 @@ apply_prompt_theme() {
       tf_fg="#88fa72"
       sysinfo_fg="#7afb5e"
       git_bg="#0d3d0a"
+      ;;
+    clay)
+      accent="#c4553a"
+      chip_cloud_bg="#e0d0be"
+      go_fg="#6a7a4a"
+      az_fg="#c4553a"
+      gcp_fg="#b06830"
+      tf_fg="#5a7088"
+      sysinfo_fg="#8a7060"
+      git_bg="#dccab4"
       ;;
     *)
       return 1
@@ -1028,6 +1061,27 @@ palette = 12=#20c820
 palette = 13=#4af626
 palette = 14=#5af83a
 palette = 15=#c0eaa8
+EOF
+      emit_standard_palette_16_255
+      ;;
+    clay)
+      cat <<'EOF'
+palette = 0=#3e3330
+palette = 1=#b84a3a
+palette = 2=#6a7a4a
+palette = 3=#a08040
+palette = 4=#5a7088
+palette = 5=#9a6070
+palette = 6=#5a8878
+palette = 7=#e8ddd0
+palette = 8=#7a6e66
+palette = 9=#d06048
+palette = 10=#88985a
+palette = 11=#c09850
+palette = 12=#7a92aa
+palette = 13=#b87888
+palette = 14=#78a898
+palette = 15=#f5efe6
 EOF
       emit_standard_palette_16_255
       ;;
@@ -1339,8 +1393,7 @@ cmd_reload() {
   local unsafe=0
   local _t _a _rgb _ca _cb _cd _cv _cr
   _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+  _init_ui "$_t"
 
   case "$option" in
     ''|safe|--safe)
@@ -1461,9 +1514,18 @@ apply_theme() {
       selection_bg="#091509"
       selection_fg="#74fc5d"
       ;;
+    clay)
+      theme_name="Phala Green Dark"
+      background="#f5efe6"
+      foreground="#3e3330"
+      cursor_color="#c4553a"
+      cursor_text="#f5efe6"
+      selection_bg="#e4d5c2"
+      selection_fg="#2e2420"
+      ;;
     *)
       printf 'Invalid theme: %s\n' "$theme" >&2
-      printf 'Use: obsidian, lunar, crimson, abyss, fallout\n' >&2
+      printf 'Use: obsidian, lunar, crimson, abyss, fallout, clay\n' >&2
       exit 1
       ;;
   esac
@@ -1489,8 +1551,7 @@ cmd_mode() {
   local arg="${1:-}"
   local _t _a _rgb _ca _cb _cd _cv _cr
   _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+  _init_ui "$_t"
 
   case "$arg" in
     '')
@@ -1523,10 +1584,9 @@ cmd_prompt() {
     ''|show|status)
       configured="$(read_prompt_backend)"
       effective="$(effective_prompt_backend)"
-      local _t _a _rgb _ca _cb _cd _cv _cr
+      local _t
       _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      _init_ui "$_t"
       if [[ "$configured" == "$effective" ]]; then
         printf "\n  ${_cd}prompt${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$configured"
       else
@@ -1534,10 +1594,9 @@ cmd_prompt() {
       fi
       ;;
     list)
-      local _t _a _rgb _ca _cb _cd _cv _cr
+      local _t
       _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      _init_ui "$_t"
       printf "\n  ${_cd}PROMPT BACKENDS${_cr}\n\n"
       printf "  ${_cb}${_ca}native${_cr}    ${_cv}built-in zsh prompt${_cr}\n"
       printf "  ${_cb}${_ca}omp${_cr}       ${_cv}oh-my-posh prompt engine${_cr}\n"
@@ -1551,10 +1610,9 @@ cmd_prompt() {
       case "$backend" in
         native|omp)
           write_prompt_backend "$backend"
-          local _t _a _rgb _ca _cb _cd _cv _cr
+          local _t
           _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-          _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-          _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+          _init_ui "$_t"
           printf "\n  ${_ca}✓${_cr}  ${_cv}prompt  →  %s${_cr}\n" "$backend"
           if [[ "$backend" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
             printf "  ${_cd}  oh-my-posh not found — will fall back to native${_cr}\n"
@@ -1571,10 +1629,9 @@ cmd_prompt() {
       ;;
     native|omp)
       write_prompt_backend "$action"
-      local _t _a _rgb _ca _cb _cd _cv _cr
+      local _t
       _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      _init_ui "$_t"
       printf "\n  ${_ca}✓${_cr}  ${_cv}prompt  →  %s${_cr}\n" "$action"
       if [[ "$action" == "omp" ]] && ! command -v oh-my-posh >/dev/null 2>&1; then
         printf "  ${_cd}  oh-my-posh not found — will fall back to native${_cr}\n"
@@ -1596,35 +1653,34 @@ cmd_theme() {
 
   case "$action" in
     '')
-      local _t _a _rgb _ca _cb _cd _cv _cr
+      local _t
       _t="$(read_theme_file)"
-      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      _init_ui "$_t"
       printf "\n  ${_cd}theme${_cr}    ${_cb}${_ca}%s${_cr}\n\n" "$_t"
       ;;
     list)
-      local _t _a _rgb _ca _cb _cd _cv _cr
+      local _t
       _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-      _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-      _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+      _init_ui "$_t"
       printf "\n  ${_cd}THEMES${_cr}\n\n"
       printf "  ${_cb}${_ca}obsidian${_cr}    ${_cv}original Boo look with purple accents${_cr}\n"
       printf "  ${_cb}${_ca}lunar${_cr}       ${_cv}cool blue-gray, no purple accents${_cr}\n"
       printf "  ${_cb}${_ca}crimson${_cr}     ${_cv}high-contrast red mode${_cr}\n"
       printf "  ${_cb}${_ca}abyss${_cr}       ${_cv}deep indigo with violet-magenta accents${_cr}\n"
       printf "  ${_cb}${_ca}fallout${_cr}     ${_cv}RobCo phosphor CRT — warm amber-lime${_cr}\n"
+      printf "  ${_cb}${_ca}clay${_cr}   ${_cv}warm cream light theme — earthy terracotta${_cr}\n"
       printf "\n"
       ;;
     set)
       if [[ -z "$theme" ]]; then
-        printf 'Usage: boo theme set <obsidian|lunar|crimson|abyss|fallout>\n' >&2
+        printf 'Usage: boo theme set <obsidian|lunar|crimson|abyss|fallout|clay>\n' >&2
         exit 1
       fi
       apply_theme "$theme"
       print_theme_applied_card "$theme"
       cmd_reload > /dev/null 2>&1 || true
       ;;
-    obsidian|lunar|crimson|abyss|fallout)
+    obsidian|lunar|crimson|abyss|fallout|clay)
       apply_theme "$action"
       print_theme_applied_card "$action"
       cmd_reload > /dev/null 2>&1 || true
@@ -1642,8 +1698,7 @@ cmd_font() {
   local preset_family family size
   local _t _a _rgb _ca _cb _cd _cv _cr
   _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+  _init_ui "$_t"
 
   case "$action" in
     ''|show|status)
@@ -1745,8 +1800,7 @@ cmd_opacity() {
   local resolved
   local _t _a _rgb _ca _cb _cd _cv _cr
   _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+  _init_ui "$_t"
 
   case "$arg" in
     '')
@@ -1765,7 +1819,7 @@ cmd_preview() {
   local target=""
   local token
   local plain=0
-  local themes=(obsidian lunar crimson abyss fallout)
+  local themes=(obsidian lunar crimson abyss fallout clay)
   local theme
 
   for token in "$@"; do
@@ -1775,24 +1829,24 @@ cmd_preview() {
       --plain|-p)
         plain=1
         ;;
-      obsidian|lunar|crimson|abyss|fallout|all)
+      obsidian|lunar|crimson|abyss|fallout|clay|all)
         if [[ -n "$target" ]]; then
           printf 'Only one preview target can be used at a time.\n' >&2
-          printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n' >&2
+          printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|clay|all> [--plain]\n' >&2
           exit 1
         fi
         target="$token"
         ;;
       *)
         printf 'Invalid preview option/target: %s\n' "$token" >&2
-        printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n' >&2
+        printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|clay|all> [--plain]\n' >&2
         exit 1
         ;;
     esac
   done
 
   if [[ -z "$target" ]]; then
-    printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|all> [--plain]\n'
+    printf 'Usage: boo preview <obsidian|lunar|crimson|abyss|fallout|clay|all> [--plain]\n'
     return
   fi
 
@@ -1804,8 +1858,10 @@ cmd_preview() {
           print_preview_all_row "$theme" "$plain"
         done
       else
-        local cl="\033[38;5;244m"
-        local cr="\033[0m"
+        local _active_t
+        _active_t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+        _init_ui "$_active_t"
+        local cl="$_cl" cr="$_cr"
         local sep
         sep="$(printf '%*s' 56 '' | tr ' ' '─')"
         printf "\n"
@@ -1829,8 +1885,7 @@ cmd_splash() {
   local splash
   local _t _a _rgb _ca _cb _cd _cv _cr
   _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
-  _a="$(theme_accent_color "$_t")"; _rgb="$(hex_to_rgb "$_a")"
-  _ca="\033[38;2;${_rgb}m"; _cb="\033[1m"; _cd="\033[38;5;237m"; _cv="\033[38;5;252m"; _cr="\033[0m"
+  _init_ui "$_t"
 
   case "$action" in
     ''|show|status)
@@ -1885,23 +1940,26 @@ cmd_splash() {
 
 cmd_doctor() {
   local action="${1:-check}"
+  local _t
+  _t="$(cat "$THEME_FILE" 2>/dev/null || printf '%s' "$DEFAULT_THEME")"
+  _init_ui "$_t"
 
   case "$action" in
     ''|check|status)
       if doctor_run_checks; then
         return 0
       fi
-      printf "  \033[38;5;196m!\033[0m  \033[38;5;252msome checks failed\033[0m  \033[38;5;237mrun boo doctor fix\033[0m\n\n" >&2
+      printf "  \033[38;5;196m!\033[0m  ${_cv}some checks failed${_cr}  ${_cd}run boo doctor fix${_cr}\n\n" >&2
       return 1
       ;;
     fix|--fix)
       doctor_apply_fixes
-      printf "\n  \033[38;5;244mRE-CHECKING\033[0m\n\n"
+      printf "\n  ${_cl}RE-CHECKING${_cr}\n\n"
       if doctor_run_checks; then
-        printf "  \033[38;5;82m✓\033[0m  \033[38;5;252mall checks passed\033[0m  \033[38;5;237mrun exec zsh to apply shell changes\033[0m\n\n"
+        printf "  \033[38;5;82m✓\033[0m  ${_cv}all checks passed${_cr}  ${_cd}run exec zsh to apply shell changes${_cr}\n\n"
         return 0
       fi
-      printf "  \033[38;5;196m✗\033[0m  \033[38;5;252msome checks still failed\033[0m\n\n" >&2
+      printf "  \033[38;5;196m✗\033[0m  ${_cv}some checks still failed${_cr}\n\n" >&2
       return 1
       ;;
     *)
@@ -2094,8 +2152,9 @@ cmd_status() {
 
   mode="$(read_mode)"
   theme="$(read_theme_file)"
-  accent="$(theme_accent_color "$theme")"
-  rgb="$(hex_to_rgb "$accent")"
+  _init_ui "$theme"
+  accent="$_a"
+  rgb="$_rgb"
   font_family="$(current_font_family)"
   font_size="$(current_font_size)"
   prompt_configured="$(read_prompt_backend)"
@@ -2108,13 +2167,8 @@ cmd_status() {
   IFS=';' read -r r2 g2 b2 <<< "$rgb"
   r1=$(( r2 / 8 )); g1=$(( g2 / 8 )); b1=$(( b2 / 8 ))
 
-  local ca="\033[38;2;${rgb}m"
-  local cb="\033[1m"
-  local ci="\033[2m"
-  local cl="\033[38;5;244m"
-  local cv="\033[38;5;252m"
-  local cd="\033[38;5;237m"
-  local cr="\033[0m"
+  local ca="$_ca" cb="$_cb" ci="\033[2m"
+  local cl="$_cl" cv="$_cv" cd="$_cd" cr="$_cr"
 
   local inner=70
   local bar
@@ -2231,7 +2285,7 @@ case "$subcommand" in
     shift || true
     cmd_prompt "${1:-}" "${2:-}"
     ;;
-  obsidian|lunar|crimson|abyss|fallout)
+  obsidian|lunar|crimson|abyss|fallout|clay)
     cmd_theme "$subcommand"
     ;;
   opacity)
