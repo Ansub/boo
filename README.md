@@ -72,6 +72,24 @@ boo preview all
 boo preview abyss --plain
 ```
 
+Create a custom theme by adding a file in `~/.config/boo/themes/<name>.theme`:
+
+```ini
+description=my custom theme
+accent=#ff6a00
+bg=#0a0400
+fg=#ffb870
+cursor=#ff6a00
+cursor_text=#000000
+selection_bg=#2a1800
+selection_fg=#ffd4a0
+pal_0=#0a0400
+...
+pal_15=#ffe8cc
+```
+
+Then run `boo theme <name>`.
+
 ### Fonts
 
 ```bash
@@ -172,6 +190,7 @@ Boo persists state in:
 - `~/.config/boo/mode.zsh`
 - `~/.config/boo/theme`
 - `~/.config/boo/theme.zsh`
+- `~/.config/boo/themes/*.theme`
 - `~/.config/boo/prompt`
 - `~/.config/boo/splash.zsh`
 - `~/.config/boo/custom-splash.txt` (when using custom splash)
@@ -189,6 +208,7 @@ Ghostty config targets used by Boo:
 - `configs/ohmyposh/boo.omp.json` - active prompt template
 - `configs/ohmyposh/presets/*.omp.json` - prompt presets
 - `art/*.txt` - built-in splash art
+- `themes/*.theme` - built-in theme definitions
 - `scripts/install.sh` - local installer
 - `install.sh` - bootstrap installer entrypoint
 
