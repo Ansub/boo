@@ -25,6 +25,25 @@ boo font jetbrains
 boo opacity glass
 ```
 
+## Install (2 minutes)
+
+```bash
+curl -fsSL https://boo.ansub.co/install.sh | bash
+source ~/.zshrc
+```
+
+Open a new Ghostty window, then run:
+
+```bash
+boo doctor
+boo theme fallout
+```
+
+## If changes don't apply immediately
+
+- Press `Cmd+Shift+,` in Ghostty, or
+- Run `boo reload --unsafe`
+
 ## Requirements
 
 - macOS (tested)
@@ -33,33 +52,13 @@ boo opacity glass
 - Nerd Font installed in your system (recommended)
 - [oh-my-posh](https://ohmyposh.dev/) (optional)
 
-## Install
-
-### One-line install
-
-```bash
-curl -fsSL https://boo.ansub.co/install.sh | bash && source ~/.zshrc
-```
-
-Then apply config now with either:
-- press `Cmd+Shift+,` in Ghostty, or
-- run `boo reload --unsafe`
-
-If needed, open a new Ghostty window.
-
-### Install from source
+## Install from source (advanced)
 
 ```bash
 git clone https://github.com/Ansub/boo.git
 cd boo
 ./scripts/install.sh && source ~/.zshrc
 ```
-
-Then apply config now with either:
-- press `Cmd+Shift+,` in Ghostty, or
-- run `boo reload --unsafe`
-
-If needed, open a new Ghostty window.
 
 ## First 5 Minutes
 
