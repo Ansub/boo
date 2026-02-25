@@ -4,17 +4,26 @@
 
 **Boo — Adding taste to your terminal.**
 
-Boo is a design-first Ghostty + Zsh CLI for a fast, themeable terminal workflow.
+Boo helps you make your terminal look and feel better in minutes — without manually editing config files.
 
 ## What You Get
 
-- A single-file CLI (`bin/boo`) with no build step
-- Full Ghostty color control, including ANSI `palette 0..255`
-- File-based theme engine (`~/.config/boo/themes/*.theme`) with built-in + custom themes
-- Built-in themes: `abyss` (default), `clay`, `crimson`, `fallout`, `lunar`, `moss`, `rust`
-- Prompt backends: native zsh (default) + optional `oh-my-posh`
-- Splash art system (`boo splash`) and startup dashboard
-- Operations built in: `doctor`, `reload`, `upgrade`, `uninstall`
+- Beautiful ready-to-use themes (plus easy custom themes)
+- Better defaults for Ghostty + Zsh setup
+- A clean startup panel and optional splash art
+- Simple commands to change font, opacity, theme, prompt, and mode
+- Quick troubleshooting with `boo doctor`
+- Safe install/upgrade/uninstall flow with backups
+
+## Great for beginners
+
+If you're new to terminal setup, Boo gives you a polished setup fast with one command and easy controls:
+
+```bash
+boo theme fallout
+boo font jetbrains
+boo opacity glass
+```
 
 ## Requirements
 
