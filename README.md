@@ -2,52 +2,54 @@
 
 <img width="2250" height="1026" alt="CleanShot 2026-02-22 at 21 26 28@2x" src="https://github.com/user-attachments/assets/e23277cd-2b2f-4e7a-94f4-7b925e4b34bb" />
 
-Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
+**Boo — Adding taste to your terminal.**
+
+Boo helps you make your terminal look and feel better in minutes — without manually editing config files.
 
 ## What You Get
 
-- Ghostty visual config with theme-tinted dark backgrounds
-- Full ANSI `palette 0..255` written on theme apply
-- Theme presets: `obsidian`, `lunar`, `crimson`, `abyss`, `fallout` (default: `abyss`)
-- Dual prompts: native zsh (default) and optional `oh-my-posh`
-- Startup dashboard + splash art controls
-- Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor/upgrade
+- Beautiful ready-to-use themes (plus easy custom theme creation)
+- Better defaults for Ghostty + Zsh setup
+- A clean startup panel and optional splash art
+- Simple commands to change opacity, theme, prompt, and mode
+- Create your own theme in seconds with `boo theme create`
+- Quick troubleshooting with `boo doctor`
+- Safe install/upgrade/uninstall flow with backups
+
+## Great for beginners
+
+If you're new to terminal setup, Boo gives you a polished setup fast with one command and easy controls:
+
+```bash
+boo theme fallout
+boo opacity glass
+```
+
+## Install
+
+```bash
+curl -fsSL https://boo.ansub.co/install.sh | bash
+source ~/.zshrc
+```
+
+Open a new Ghostty window, then run:
+
+```bash
+boo doctor
+boo theme fallout
+```
+
+## If changes don't apply immediately
+
+- Press `Cmd+Shift+,` in Ghostty, or
+- Run `boo reload --unsafe`
 
 ## Requirements
 
 - macOS (tested)
 - [Ghostty](https://ghostty.org/)
 - `zsh`
-- Nerd Font installed in your system (recommended)
 - [oh-my-posh](https://ohmyposh.dev/) (optional)
-
-## Install
-
-### One-line install
-
-```bash
-curl -fsSL https://boo.ansub.co/install.sh | bash && source ~/.zshrc
-```
-
-Then apply config now with either:
-- press `Cmd+Shift+,` in Ghostty, or
-- run `boo reload --unsafe`
-
-If needed, open a new Ghostty window.
-
-### Install from source
-
-```bash
-git clone https://github.com/Ansub/boo.git
-cd boo
-./scripts/install.sh && source ~/.zshrc
-```
-
-Then apply config now with either:
-- press `Cmd+Shift+,` in Ghostty, or
-- run `boo reload --unsafe`
-
-If needed, open a new Ghostty window.
 
 ## First 5 Minutes
 
@@ -55,14 +57,14 @@ If needed, open a new Ghostty window.
 boo doctor
 boo status
 boo theme fallout
-boo font jetbrains
 boo opacity glass
 boo reload --unsafe
 ```
 
 ## Common Commands
 
-### Themes
+### Themes (change your terminal colors)
+Switch themes, preview them, and manage your custom themes.
 
 ```bash
 boo theme list
@@ -72,7 +74,20 @@ boo preview all
 boo preview abyss --plain
 ```
 
-Create a custom theme by adding a file in `~/.config/boo/themes/<name>.theme`:
+### Create themes (make your own look)
+Generate a new theme from an accent color, or create one manually.
+
+```bash
+# Direct mode (one command)
+boo theme create --name synthwave --accent '#ff3ea5'
+
+# Iterative mode (guided prompts)
+boo theme create
+
+boo theme delete synthwave
+```
+
+You can also create a theme file directly in `~/.config/boo/themes/<name>.theme`:
 
 ```ini
 description=my custom theme
@@ -90,17 +105,8 @@ pal_15=#ffe8cc
 
 Then run `boo theme <name>`.
 
-### Fonts
-
-```bash
-boo font
-boo font list
-boo font hack
-boo font family "JetBrainsMono Nerd Font"
-boo font size 15
-```
-
-### Prompt
+### Prompt (how your shell prompt looks)
+Choose between Boo's built-in prompt and oh-my-posh.
 
 ```bash
 boo prompt
@@ -108,14 +114,16 @@ boo prompt set native
 boo prompt set omp
 ```
 
-### Privacy mode
+### Mode (what info is shown on startup)
+Control how much detail Boo shows when terminal opens.
 
 ```bash
 boo mode full
 boo mode public
 ```
 
-### Splash art
+### Splash art (startup visual)
+Pick the startup art, use your own, or disable it.
 
 ```bash
 boo splash list
@@ -125,7 +133,8 @@ boo splash none
 boo splash reset
 ```
 
-### Reload + diagnostics
+### Reload + doctor (apply and troubleshoot)
+Reload terminal config and run health checks when something feels off.
 
 ```bash
 boo reload
@@ -134,7 +143,7 @@ boo doctor
 boo doctor fix
 ```
 
-### Uninstall
+### Uninstall (remove Boo cleanly)
 
 ```bash
 boo uninstall
@@ -144,81 +153,30 @@ boo uninstall --yes
 
 ## Theme Intent
 
-- `obsidian`: original Boo look with purple accents
-- `lunar`: cool blue-gray (no purple accents)
-- `crimson`: high-contrast red mode
 - `abyss`: deep indigo with violet-magenta accents (default)
-- `fallout`: RobCo Industries phosphor CRT — warm amber-lime on near-black
+- `clay`: warm cream light mode with earthy terracotta accents
+- `crimson`: high-contrast red mode
+- `fallout`: RobCo phosphor CRT — warm amber-lime on near-black
+- `lunar`: desaturated monochrome noir
+- `moss`: damp forest floor — muted earthy green
+- `rust`: oxidized metal — brutalist copper
 
-## Font Notes (Important)
+## Roadmap
 
-If a font family is set but not installed, Ghostty falls back to another font.
-
-Check what is configured:
-
-```bash
-boo font
-ghostty +show-config | rg '^font-family =|^font-size ='
-```
-
-Check what Ghostty is actually rendering:
-
-```bash
-ghostty +show-face --cp=0x41
-```
-
-Install missing Nerd Fonts with Homebrew casks, for example:
-
-```bash
-brew install --cask font-hack-nerd-font
-brew install --cask font-jetbrains-mono-nerd-font
-brew install --cask font-fira-code-nerd-font
-```
-
+- Font controls (`boo font`) are planned and will return in an upcoming release.
+- More quality-of-life improvements for first-time setup.
 ## Reload Behavior
 
 - `boo reload`: safe guidance only (no key injection, no window/session changes)
 - `boo reload --unsafe`: tries to trigger Ghostty `reload_config` via detected comma-based keybind (`Cmd+Shift+,` or `Cmd+,`)
 - Theme changes auto-run safe reload
-- Font and opacity changes auto-run unsafe reload
+- Opacity changes auto-run unsafe reload
 - On macOS, `background-opacity` can still require a full Ghostty restart
-
-## State and Paths
-
-Boo persists state in:
-
-- `~/.config/boo/mode.zsh`
-- `~/.config/boo/theme`
-- `~/.config/boo/theme.zsh`
-- `~/.config/boo/themes/*.theme`
-- `~/.config/boo/prompt`
-- `~/.config/boo/splash.zsh`
-- `~/.config/boo/custom-splash.txt` (when using custom splash)
-
-Ghostty config targets used by Boo:
-
-- `~/.config/ghostty/config`
-- `~/Library/Application Support/com.mitchellh.ghostty/config`
-
-## Repo Layout
-
-- `bin/boo` - Boo CLI
-- `shell/boo.zsh` - shell integration + startup panel
-- `configs/ghostty/config` - base Ghostty config
-- `configs/ohmyposh/boo.omp.json` - active prompt template
-- `configs/ohmyposh/presets/*.omp.json` - prompt presets
-- `art/*.txt` - built-in splash art
-- `themes/*.theme` - built-in theme definitions
-- `scripts/install.sh` - local installer
-- `install.sh` - bootstrap installer entrypoint
 
 ## Notes
 
 - Installer creates timestamped backups when replacing files.
 - `boo uninstall` restores your original Ghostty config when available, otherwise removes Boo-managed config.
-- If your `.zshrc` is complex, keep your existing setup and only source `~/.config/boo/boo.zsh`.
-- Helper commands: `boo-mode` -> `boo mode`, `boo-prompt` -> `boo prompt`.
-- To skip auto-apply in scripts, set `BOO_NO_AUTO_APPLY=1`.
 
 ## License
 
