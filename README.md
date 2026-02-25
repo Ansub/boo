@@ -2,7 +2,9 @@
 
 <img width="2250" height="1026" alt="CleanShot 2026-02-22 at 21 26 28@2x" src="https://github.com/user-attachments/assets/e23277cd-2b2f-4e7a-94f4-7b925e4b34bb" />
 
-Boo is a polished Ghostty + Zsh setup for a fast, themeable terminal workflow.
+**Boo — Adding taste to your terminal.**
+
+Boo is a design-first Ghostty + Zsh CLI for a fast, themeable terminal workflow.
 
 ## What You Get
 
