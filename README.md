@@ -157,42 +157,10 @@ boo uninstall --yes
 - Opacity changes auto-run unsafe reload
 - On macOS, `background-opacity` can still require a full Ghostty restart
 
-## State and Paths
-
-Boo persists state in:
-
-- `~/.config/boo/mode.zsh`
-- `~/.config/boo/theme`
-- `~/.config/boo/theme.zsh`
-- `~/.config/boo/themes/*.theme`
-- `~/.config/boo/prompt`
-- `~/.config/boo/splash.zsh`
-- `~/.config/boo/custom-splash.txt` (when using custom splash)
-
-Ghostty config targets used by Boo:
-
-- `~/.config/ghostty/config`
-- `~/Library/Application Support/com.mitchellh.ghostty/config`
-
-## Repo Layout
-
-- `bin/boo` - Boo CLI
-- `shell/boo.zsh` - shell integration + startup panel
-- `configs/ghostty/config` - base Ghostty config
-- `configs/ohmyposh/boo.omp.json` - active prompt template
-- `configs/ohmyposh/presets/*.omp.json` - prompt presets
-- `art/*.txt` - built-in splash art
-- `themes/*.theme` - built-in theme definitions
-- `scripts/install.sh` - local installer
-- `install.sh` - bootstrap installer entrypoint
-
 ## Notes
 
 - Installer creates timestamped backups when replacing files.
 - `boo uninstall` restores your original Ghostty config when available, otherwise removes Boo-managed config.
-- If your `.zshrc` is complex, keep your existing setup and only source `~/.config/boo/boo.zsh`.
-- Helper commands: `boo-mode` -> `boo mode`, `boo-prompt` -> `boo prompt`.
-- To skip auto-apply in scripts, set `BOO_NO_AUTO_APPLY=1`.
 
 ## License
 
