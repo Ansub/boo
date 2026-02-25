@@ -8,12 +8,13 @@ Boo is a design-first Ghostty + Zsh CLI for a fast, themeable terminal workflow.
 
 ## What You Get
 
-- Ghostty visual config with theme-tinted dark backgrounds
-- Full ANSI `palette 0..255` written on theme apply
-- Theme presets: `obsidian`, `lunar`, `crimson`, `abyss`, `fallout` (default: `abyss`)
-- Dual prompts: native zsh (default) and optional `oh-my-posh`
-- Startup dashboard + splash art controls
-- Single CLI (`boo`) for theme/font/opacity/prompt/mode/reload/doctor/upgrade
+- A single-file CLI (`bin/boo`) with no build step
+- Full Ghostty color control, including ANSI `palette 0..255`
+- File-based theme engine (`~/.config/boo/themes/*.theme`) with built-in + custom themes
+- Built-in themes: `abyss` (default), `clay`, `crimson`, `fallout`, `lunar`, `moss`, `rust`
+- Prompt backends: native zsh (default) + optional `oh-my-posh`
+- Splash art system (`boo splash`) and startup dashboard
+- Operations built in: `doctor`, `reload`, `upgrade`, `uninstall`
 
 ## Requirements
 
@@ -70,6 +71,8 @@ boo reload --unsafe
 boo theme list
 boo theme abyss
 boo crimson     # shorthand
+boo theme create --name synthwave --accent '#ff3ea5'
+boo theme delete synthwave
 boo preview all
 boo preview abyss --plain
 ```
@@ -146,11 +149,13 @@ boo uninstall --yes
 
 ## Theme Intent
 
-- `obsidian`: original Boo look with purple accents
-- `lunar`: cool blue-gray (no purple accents)
-- `crimson`: high-contrast red mode
 - `abyss`: deep indigo with violet-magenta accents (default)
-- `fallout`: RobCo Industries phosphor CRT — warm amber-lime on near-black
+- `clay`: warm cream light mode with earthy terracotta accents
+- `crimson`: high-contrast red mode
+- `fallout`: RobCo phosphor CRT — warm amber-lime on near-black
+- `lunar`: desaturated monochrome noir
+- `moss`: damp forest floor — muted earthy green
+- `rust`: oxidized metal — brutalist copper
 
 ## Font Notes (Important)
 
