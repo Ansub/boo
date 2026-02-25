@@ -8,10 +8,11 @@ Boo helps you make your terminal look and feel better in minutes — without man
 
 ## What You Get
 
-- Beautiful ready-to-use themes (plus easy custom themes)
+- Beautiful ready-to-use themes (plus easy custom theme creation)
 - Better defaults for Ghostty + Zsh setup
 - A clean startup panel and optional splash art
 - Simple commands to change font, opacity, theme, prompt, and mode
+- Create your own theme in seconds with `boo theme create`
 - Quick troubleshooting with `boo doctor`
 - Safe install/upgrade/uninstall flow with backups
 
@@ -25,7 +26,7 @@ boo font jetbrains
 boo opacity glass
 ```
 
-## Install (2 minutes)
+## Install
 
 ```bash
 curl -fsSL https://boo.ansub.co/install.sh | bash
@@ -51,14 +52,6 @@ boo theme fallout
 - `zsh`
 - Nerd Font installed in your system (recommended)
 - [oh-my-posh](https://ohmyposh.dev/) (optional)
-
-## Install from source (advanced)
-
-```bash
-git clone https://github.com/Ansub/boo.git
-cd boo
-./scripts/install.sh && source ~/.zshrc
-```
 
 ## First 5 Minutes
 
