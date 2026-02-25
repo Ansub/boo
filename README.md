@@ -78,7 +78,12 @@ boo preview abyss --plain
 Generate a new theme from an accent color, or create one manually.
 
 ```bash
+# Direct mode (one command)
 boo theme create --name synthwave --accent '#ff3ea5'
+
+# Iterative mode (guided prompts)
+boo theme create
+
 boo theme delete synthwave
 ```
 
