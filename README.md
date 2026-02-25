@@ -1,4 +1,3 @@
-# Boo -  Adding taste to your terminal
 <img width="3840" height="1000" alt="Boo - Banner (1)" src="https://github.com/user-attachments/assets/4e8ae86b-c671-4aa5-9f34-9cabb59d1fe1" />
 
 Boo helps you make your terminal look and feel better in minutes — without manually editing config files.
