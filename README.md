@@ -11,7 +11,7 @@ Boo helps you make your terminal look and feel better in minutes — without man
 - Beautiful ready-to-use themes (plus easy custom theme creation)
 - Better defaults for Ghostty + Zsh setup
 - A clean startup panel and optional splash art
-- Simple commands to change font, opacity, theme, prompt, and mode
+- Simple commands to change opacity, theme, prompt, and mode
 - Create your own theme in seconds with `boo theme create`
 - Quick troubleshooting with `boo doctor`
 - Safe install/upgrade/uninstall flow with backups
@@ -22,7 +22,6 @@ If you're new to terminal setup, Boo gives you a polished setup fast with one co
 
 ```bash
 boo theme fallout
-boo font jetbrains
 boo opacity glass
 ```
 
@@ -50,7 +49,6 @@ boo theme fallout
 - macOS (tested)
 - [Ghostty](https://ghostty.org/)
 - `zsh`
-- Nerd Font installed in your system (recommended)
 - [oh-my-posh](https://ohmyposh.dev/) (optional)
 
 ## First 5 Minutes
@@ -59,7 +57,6 @@ boo theme fallout
 boo doctor
 boo status
 boo theme fallout
-boo font jetbrains
 boo opacity glass
 boo reload --unsafe
 ```
@@ -95,16 +92,6 @@ pal_15=#ffe8cc
 ```
 
 Then run `boo theme <name>`.
-
-### Fonts
-
-```bash
-boo font
-boo font list
-boo font hack
-boo font family "JetBrainsMono Nerd Font"
-boo font size 15
-```
 
 ### Prompt
 
@@ -158,37 +145,16 @@ boo uninstall --yes
 - `moss`: damp forest floor — muted earthy green
 - `rust`: oxidized metal — brutalist copper
 
-## Font Notes (Important)
+## Roadmap
 
-If a font family is set but not installed, Ghostty falls back to another font.
-
-Check what is configured:
-
-```bash
-boo font
-ghostty +show-config | rg '^font-family =|^font-size ='
-```
-
-Check what Ghostty is actually rendering:
-
-```bash
-ghostty +show-face --cp=0x41
-```
-
-Install missing Nerd Fonts with Homebrew casks, for example:
-
-```bash
-brew install --cask font-hack-nerd-font
-brew install --cask font-jetbrains-mono-nerd-font
-brew install --cask font-fira-code-nerd-font
-```
-
+- Font controls (`boo font`) are planned and will return in an upcoming release.
+- More quality-of-life improvements for first-time setup.
 ## Reload Behavior
 
 - `boo reload`: safe guidance only (no key injection, no window/session changes)
 - `boo reload --unsafe`: tries to trigger Ghostty `reload_config` via detected comma-based keybind (`Cmd+Shift+,` or `Cmd+,`)
 - Theme changes auto-run safe reload
-- Font and opacity changes auto-run unsafe reload
+- Opacity changes auto-run unsafe reload
 - On macOS, `background-opacity` can still require a full Ghostty restart
 
 ## State and Paths
