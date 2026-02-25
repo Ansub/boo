@@ -1,8 +1,5 @@
-# Boo
-
-<img width="2250" height="1026" alt="CleanShot 2026-02-22 at 21 26 28@2x" src="https://github.com/user-attachments/assets/e23277cd-2b2f-4e7a-94f4-7b925e4b34bb" />
-
-**Boo — Adding taste to your terminal.**
+# Boo -  Adding taste to your terminal
+<img width="3840" height="1000" alt="Boo - Banner (1)" src="https://github.com/user-attachments/assets/4e8ae86b-c671-4aa5-9f34-9cabb59d1fe1" />
 
 Boo helps you make your terminal look and feel better in minutes — without manually editing config files.
 
