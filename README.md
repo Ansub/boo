@@ -63,19 +63,26 @@ boo reload --unsafe
 
 ## Common Commands
 
-### Themes
+### Themes (change your terminal colors)
+Switch themes, preview them, and manage your custom themes.
 
 ```bash
 boo theme list
 boo theme abyss
 boo crimson     # shorthand
-boo theme create --name synthwave --accent '#ff3ea5'
-boo theme delete synthwave
 boo preview all
 boo preview abyss --plain
 ```
 
-Create a custom theme by adding a file in `~/.config/boo/themes/<name>.theme`:
+### Create themes (make your own look)
+Generate a new theme from an accent color, or create one manually.
+
+```bash
+boo theme create --name synthwave --accent '#ff3ea5'
+boo theme delete synthwave
+```
+
+You can also create a theme file directly in `~/.config/boo/themes/<name>.theme`:
 
 ```ini
 description=my custom theme
@@ -93,7 +100,8 @@ pal_15=#ffe8cc
 
 Then run `boo theme <name>`.
 
-### Prompt
+### Prompt (how your shell prompt looks)
+Choose between Boo's built-in prompt and oh-my-posh.
 
 ```bash
 boo prompt
@@ -101,14 +109,16 @@ boo prompt set native
 boo prompt set omp
 ```
 
-### Privacy mode
+### Mode (what info is shown on startup)
+Control how much detail Boo shows when terminal opens.
 
 ```bash
 boo mode full
 boo mode public
 ```
 
-### Splash art
+### Splash art (startup visual)
+Pick the startup art, use your own, or disable it.
 
 ```bash
 boo splash list
@@ -118,7 +128,8 @@ boo splash none
 boo splash reset
 ```
 
-### Reload + diagnostics
+### Reload + doctor (apply and troubleshoot)
+Reload terminal config and run health checks when something feels off.
 
 ```bash
 boo reload
@@ -127,7 +138,7 @@ boo doctor
 boo doctor fix
 ```
 
-### Uninstall
+### Uninstall (remove Boo cleanly)
 
 ```bash
 boo uninstall
