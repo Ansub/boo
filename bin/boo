@@ -1152,7 +1152,7 @@ apply_prompt_theme() {
   left_os_bg="$(blend_color "$_T_bg" "$_T_fg" 140)"
   left_user_bg="$(blend_color "$_T_bg" "$_T_fg" 210)"
   left_path_bg="$(blend_color "$_T_bg" "$_T_fg" 90)"
-  left_git_bg="$(blend_color "$_T_bg" "$_T_fg" 280)"
+  left_git_bg="${_T_omp_git_bg}"
   left_exec_bg="$(blend_color "$_T_bg" "$_T_fg" 360)"
   left_root_bg="$_T_pal_1"
   left_root_fg="$(theme_text_color_for_bg "$left_root_bg")"
@@ -1183,8 +1183,9 @@ apply_prompt_theme() {
   tf_fg="$(readable_color_or_theme_text "$chip_infra_bg" "${_T_omp_tf_fg}")"
   sysinfo_fg="$(readable_color_or_theme_text "$chip_metric_bg" "${_T_omp_sysinfo_fg}")"
   time_fg="$(readable_color_or_theme_text "$chip_time_bg" "${_T_ui_label:-$_T_pal_7}")"
-  git_dirty_bg="$_T_pal_3"
-  git_diverged_bg="$_T_pal_5"
+  # Keep git state highlighting subtle so light themes don't get muddy/dark blocks.
+  git_dirty_bg="$(blend_color "$left_git_bg" "$_T_pal_3" 240)"
+  git_diverged_bg="$(blend_color "$left_git_bg" "$_T_pal_5" 240)"
   git_dirty_tpl="{{ if or (.Working.Changed) (.Staging.Changed) }}${git_dirty_bg}{{ end }}"
   git_diverged_tpl="{{ if and (gt .Ahead 0) (gt .Behind 0) }}${git_diverged_bg}{{ end }}"
 
