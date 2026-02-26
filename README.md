@@ -187,6 +187,7 @@ Expected result:
 
 - `abyss`: deep indigo with violet-magenta accents (default)
 - `clay`: warm cream light mode with earthy terracotta accents
+- `glacier`: icy daylight light mode with steel-blue accents
 - `crimson`: high-contrast red mode
 - `fallout`: RobCo phosphor CRT, warm amber-lime on near-black
 - `lunar`: desaturated monochrome noir
