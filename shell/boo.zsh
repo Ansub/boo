@@ -2,6 +2,7 @@
 
 BOO_PROMPT_FILE="$HOME/.config/boo/prompt"
 BOO_DEFAULT_PROMPT_BACKEND="native"
+BOO_OMP_CONFIG_LEGACY="$HOME/.config/ohmyposh/boo.omp.json"
 BOO_SPLASH_FILE="$HOME/.config/boo/splash.zsh"
 BOO_CUSTOM_SPLASH_FILE="$HOME/.config/boo/custom-splash.txt"
 BOO_ART_DIR="$HOME/.config/boo/art"
@@ -46,6 +47,49 @@ boo_effective_prompt_backend() {
     return
   fi
   printf '%s\n' "$configured"
+}
+
+boo_omp_config_for_theme() {
+  local theme="${1:-}"
+  if [[ -z "$theme" ]]; then
+    printf '%s\n' "$BOO_OMP_CONFIG_LEGACY"
+    return
+  fi
+  printf '%s\n' "$HOME/.config/ohmyposh/boo.${theme}.omp.json"
+}
+
+boo_resolve_omp_config() {
+  local explicit="${BOO_OMP_CONFIG:-}"
+  local themed=""
+
+  if [[ -n "$explicit" && -f "$explicit" ]]; then
+    printf '%s\n' "$explicit"
+    return
+  fi
+
+  if [[ -n "${BOO_THEME:-}" ]]; then
+    themed="$(boo_omp_config_for_theme "$BOO_THEME")"
+    if [[ -f "$themed" ]]; then
+      printf '%s\n' "$themed"
+      return
+    fi
+  fi
+
+  if [[ -f "$BOO_OMP_CONFIG_LEGACY" ]]; then
+    printf '%s\n' "$BOO_OMP_CONFIG_LEGACY"
+    return
+  fi
+
+  if [[ -n "$explicit" ]]; then
+    printf '%s\n' "$explicit"
+    return
+  fi
+  if [[ -n "$themed" ]]; then
+    printf '%s\n' "$themed"
+    return
+  fi
+
+  printf '%s\n' "$BOO_OMP_CONFIG_LEGACY"
 }
 
 boo_apply_highlight_colors() {
@@ -102,9 +146,12 @@ boo_apply_native_prompt() {
 }
 
 boo_apply_omp_prompt() {
+  local omp_config
   boo_remove_native_prompt_hooks
   if command -v oh-my-posh >/dev/null 2>&1; then
-    eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/boo.omp.json)"
+    omp_config="$(boo_resolve_omp_config)"
+    [[ -f "$omp_config" ]] || return 1
+    eval "$(oh-my-posh init zsh --config "$omp_config")"
     return 0
   fi
   return 1
