@@ -9,6 +9,7 @@ SPLASH_FILE="${HOME}/.config/boo/splash.zsh"
 CUSTOM_SPLASH_FILE="${HOME}/.config/boo/custom-splash.txt"
 BUILTIN_ART_DIR="${HOME}/.config/boo/art"
 THEMES_DIR="${HOME}/.config/boo/themes"
+COMMUNITY_THEMES_DIR="${HOME}/.config/boo/themes/community"
 DEFAULT_SPLASH="apple"
 CONFIG_DIR="${HOME}/.config/boo"
 SHELL_SNIPPET_FILE="${HOME}/.config/boo/boo.zsh"
@@ -35,6 +36,7 @@ UNAME_S="$(uname -s)"
 UNSAFE_RELOAD_REASON=""
 BOO_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FALLBACK_THEMES_DIR="$(cd "${BOO_BIN_DIR}/.." >/dev/null 2>&1 && pwd)/themes"
+FALLBACK_COMMUNITY_THEMES_DIR="${FALLBACK_THEMES_DIR}/community"
 
 ghostty_targets=()
 _LOADED_THEME=""
@@ -136,7 +138,19 @@ theme_file_for_name() {
     return 0
   fi
 
+  file="${COMMUNITY_THEMES_DIR}/${theme}.theme"
+  if [[ -f "$file" ]]; then
+    printf '%s\n' "$file"
+    return 0
+  fi
+
   file="${FALLBACK_THEMES_DIR}/${theme}.theme"
+  if [[ -f "$file" ]]; then
+    printf '%s\n' "$file"
+    return 0
+  fi
+
+  file="${FALLBACK_COMMUNITY_THEMES_DIR}/${theme}.theme"
   if [[ -f "$file" ]]; then
     printf '%s\n' "$file"
     return 0
@@ -149,7 +163,7 @@ list_theme_names() {
   local dir file name
 
   {
-    for dir in "$THEMES_DIR" "$FALLBACK_THEMES_DIR"; do
+    for dir in "$THEMES_DIR" "$COMMUNITY_THEMES_DIR" "$FALLBACK_THEMES_DIR" "$FALLBACK_COMMUNITY_THEMES_DIR"; do
       [[ -d "$dir" ]] || continue
       for file in "$dir"/*.theme; do
         [[ -e "$file" ]] || continue
@@ -161,6 +175,18 @@ list_theme_names() {
       done
     done
   } | awk '!seen[$0]++' | sort
+}
+
+theme_file_is_community() {
+  local file="$1"
+  case "$file" in
+    "${COMMUNITY_THEMES_DIR}/"*|"${FALLBACK_COMMUNITY_THEMES_DIR}/"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 list_valid_theme_names() {
@@ -634,6 +660,15 @@ doctor_apply_fixes() {
   if [[ -d "$FALLBACK_THEMES_DIR" ]] && ! compgen -G "${THEMES_DIR}/*.theme" > /dev/null; then
     cp "$FALLBACK_THEMES_DIR"/*.theme "$THEMES_DIR/" 2>/dev/null || true
   fi
+  mkdir -p "$COMMUNITY_THEMES_DIR"
+  if [[ -d "$FALLBACK_COMMUNITY_THEMES_DIR" ]]; then
+    for file in "$FALLBACK_COMMUNITY_THEMES_DIR"/*.theme; do
+      [[ -e "$file" ]] || continue
+      if [[ ! -f "$COMMUNITY_THEMES_DIR/${file##*/}" ]]; then
+        cp "$file" "$COMMUNITY_THEMES_DIR/"
+      fi
+    done
+  fi
 
   if [[ ! -f "$THEME_ENV_FILE" ]]; then
     cat > "$THEME_ENV_FILE" <<'EOF'
@@ -699,9 +734,9 @@ doctor_run_checks() {
   fi
 
   if list_theme_names | grep -q .; then
-    doctor_line ok "Theme files discovered" "$THEMES_DIR"
+    doctor_line ok "Theme files discovered" "$THEMES_DIR (+ $COMMUNITY_THEMES_DIR)"
   else
-    doctor_line fail "No theme files found" "Run installer or add files to $THEMES_DIR."
+    doctor_line fail "No theme files found" "Run installer or add files to $THEMES_DIR or $COMMUNITY_THEMES_DIR."
   fi
 
   active_theme="$(read_theme_file)"
@@ -895,9 +930,12 @@ theme_palette_strip_main() {
 
 theme_selector_rows() {
   local active_theme="${1:-}"
-  local name accent_rgb mode marker colored_name description row
-  local -a dark_rows=()
-  local -a light_rows=()
+  local name accent_rgb mode colored_name row file source meta active_bg_rgb
+  local is_community=0
+  local -a builtin_dark_rows=()
+  local -a builtin_light_rows=()
+  local -a community_dark_rows=()
+  local -a community_light_rows=()
 
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
@@ -907,30 +945,50 @@ theme_selector_rows() {
 
     accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '204;68;255')"
     mode="$(theme_mode_for_bg "$_T_bg")"
-    marker=" "
-    [[ "$name" == "$active_theme" ]] && marker="*"
     colored_name="$(printf '\033[38;2;%sm%s\033[0m' "$accent_rgb" "$name")"
-    description="${_T_description:-no description}"
-    description="${description//$'\t'/ }"
+    file="$(theme_file_for_name "$name" 2>/dev/null || true)"
+    is_community=0
+    source="builtin"
+    if [[ -n "$file" ]] && theme_file_is_community "$file"; then
+      is_community=1
+      source="community"
+    fi
+    if [[ "$name" == "$active_theme" ]]; then
+      active_bg_rgb="$(hex_to_rgb "$_T_selection_bg" 2>/dev/null || printf '85;85;85')"
+      colored_name="$(printf '\033[1;38;2;%sm\033[48;2;%sm %s \033[0m' "$accent_rgb" "$active_bg_rgb" "$name")"
+    fi
 
-    row="$(printf '%s\t%s\t%s\t%s\t%s' "$name" "$marker" "$mode" "$colored_name" "$description")"
-    if [[ "$mode" == "light" ]]; then
-      light_rows+=("$row")
+    meta="$(printf '\033[2m%s · %s\033[0m' "$source" "$mode")"
+    row="$(printf '%s\t%s  %s' "$name" "$colored_name" "$meta")"
+    if (( is_community )); then
+      if [[ "$mode" == "light" ]]; then
+        community_light_rows+=("$row")
+      else
+        community_dark_rows+=("$row")
+      fi
     else
-      dark_rows+=("$row")
+      if [[ "$mode" == "light" ]]; then
+        builtin_light_rows+=("$row")
+      else
+        builtin_dark_rows+=("$row")
+      fi
     fi
   done < <(list_theme_names)
 
-  if (( ${#dark_rows[@]} > 0 )); then
-    printf '__section__\t \t \t\033[1mDARK THEMES\033[0m\t\n'
-    printf '%s\n' "${dark_rows[@]}"
+  if (( ${#builtin_dark_rows[@]} > 0 )); then
+    printf '%s\n' "${builtin_dark_rows[@]}"
   fi
-  if (( ${#light_rows[@]} > 0 )); then
-    if (( ${#dark_rows[@]} > 0 )); then
-      printf '__section__\t \t \t\033[2m────────────────\033[0m\t\n'
-    fi
-    printf '__section__\t \t \t\033[1mLIGHT THEMES\033[0m\t\n'
-    printf '%s\n' "${light_rows[@]}"
+  if (( ${#builtin_light_rows[@]} > 0 )); then
+    printf '%s\n' "${builtin_light_rows[@]}"
+  fi
+  if (( (${#builtin_dark_rows[@]} + ${#builtin_light_rows[@]}) > 0 && (${#community_dark_rows[@]} + ${#community_light_rows[@]}) > 0 )); then
+    printf '__gap__\t \n'
+  fi
+  if (( ${#community_dark_rows[@]} > 0 )); then
+    printf '%s\n' "${community_dark_rows[@]}"
+  fi
+  if (( ${#community_light_rows[@]} > 0 )); then
+    printf '%s\n' "${community_light_rows[@]}"
   fi
 }
 
@@ -974,7 +1032,7 @@ print_theme_selector_preview() {
     printf 'No theme selected.\n'
     return 1
   fi
-  if [[ "$theme" == "__section__" ]]; then
+  if [[ "$theme" == "__section__" || "$theme" == "__gap__" ]]; then
     printf '\n  Select a theme row to preview it.\n\n'
     return 0
   fi
@@ -1011,7 +1069,7 @@ print_theme_selector_preview() {
   printf '  \033[38;5;244m%s\033[0m\n\n' "${_T_description:-no description}"
 
   printf '  \033[38;2;%sm╭%s╮\033[0m\n' "$border_rgb" "$border"
-  line="$(preview_fit_text "$inner" '  o  o  o    boo terminal')"
+  line="$(preview_fit_text "$inner" '  boo')"
   printf '  \033[38;2;%sm│\033[48;2;%sm\033[38;2;%sm%s\033[0m\033[38;2;%sm│\033[0m\n' \
     "$border_rgb" "$sel_bg_rgb" "$sel_fg_rgb" "$line" "$border_rgb"
   print_preview_terminal_row "$inner" "$bg_rgb" "$fg_rgb" " > boo theme $theme" "$border_rgb"
@@ -1054,19 +1112,19 @@ cmd_theme_select() {
       printf '%s\n' "$rows" | \
         fzf --ansi \
           --delimiter=$'\t' \
-          --with-nth=2,4 \
+          --with-nth=2 \
           --height=90% \
           --layout=reverse \
           --border \
           --prompt="theme > " \
-          --header=$'Enter: apply theme - Esc: cancel' \
+          --header=$'Enter: apply - Esc: cancel' \
           --preview="$preview_cmd" \
           --preview-window="right:62%:nowrap"
     )" || return 0
 
     chosen="${selected_line%%$'\t'*}"
     [[ -n "$chosen" ]] || continue
-    if [[ "$chosen" == "__section__" ]]; then
+    if [[ "$chosen" == "__section__" || "$chosen" == "__gap__" ]]; then
       continue
     fi
     break
@@ -2235,9 +2293,21 @@ cmd_theme_create() {
   esac
 }
 
-is_builtin_theme() {
-  local name="$1" file
-  file="$(theme_file_for_name "$name" 2>/dev/null)" || return 1
+theme_file_is_user_managed() {
+  local file="$1"
+  case "$file" in
+    "${THEMES_DIR}/"*|"${COMMUNITY_THEMES_DIR}/"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+theme_file_is_builtin() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
   head -n1 "$file" | grep -q '^# builtin'
 }
 
@@ -2248,11 +2318,13 @@ cmd_theme_delete() {
   _init_ui "$_t"
 
   if [[ -z "$name" ]]; then
-    local tname accent_rgb count=0
+    local tname file accent_rgb count=0
     printf "\n  ${_cd}DELETABLE THEMES${_cr}\n\n"
     while IFS= read -r tname; do
       [[ -n "$tname" ]] || continue
-      is_builtin_theme "$tname" && continue
+      file="$(theme_file_for_name "$tname" 2>/dev/null)" || continue
+      theme_file_is_user_managed "$file" || continue
+      theme_file_is_builtin "$file" && continue
       if load_theme "$tname" 2>/dev/null; then
         accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '180;180;180')"
         printf "  ${_cb}\033[38;2;%sm%-10s${_cr}  ${_cv}%s${_cr}\n" "$accent_rgb" "$tname" "$_T_description"
@@ -2266,19 +2338,19 @@ cmd_theme_delete() {
     return
   fi
 
-  if ! theme_file_for_name "$name" >/dev/null 2>&1; then
+  local file
+  if ! file="$(theme_file_for_name "$name" 2>/dev/null)"; then
     printf "\n  ${_cv}theme '%s' not found${_cr}\n\n" "$name" >&2
     exit 1
   fi
 
-  if is_builtin_theme "$name"; then
-    printf "\n  ${_cv}cannot delete built-in theme '%s'${_cr}\n\n" "$name" >&2
+  if ! theme_file_is_user_managed "$file"; then
+    printf "\n  ${_cv}theme '%s' not found in user themes${_cr}\n\n" "$name" >&2
     exit 1
   fi
 
-  local file="${THEMES_DIR}/${name}.theme"
-  if [[ ! -f "$file" ]]; then
-    printf "\n  ${_cv}theme '%s' not found in user themes${_cr}\n\n" "$name" >&2
+  if theme_file_is_builtin "$file"; then
+    printf "\n  ${_cv}cannot delete built-in theme '%s'${_cr}\n\n" "$name" >&2
     exit 1
   fi
 
@@ -2337,9 +2409,12 @@ cmd_theme() {
       return
       ;;
     list)
-      local _t name accent_rgb count mode palette row
-      local -a dark_rows=()
-      local -a light_rows=()
+      local _t name accent_rgb count mode palette row file
+      local is_community=0
+      local -a builtin_dark_rows=()
+      local -a builtin_light_rows=()
+      local -a community_dark_rows=()
+      local -a community_light_rows=()
       local -a invalid_rows=()
       _t="$(read_theme_file)"
       _init_ui "$_t"
@@ -2355,12 +2430,24 @@ cmd_theme() {
         accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '204;68;255')"
         palette="$(theme_palette_strip_main)"
         mode="$(theme_mode_for_bg "$_T_bg")"
-        if [[ "$mode" == "light" ]]; then
-          printf -v row "  ${_cb}\033[38;2;%sm%-10s${_cr}      %s" "$accent_rgb" "$name" "$palette"
-          light_rows+=("$row")
+        file="$(theme_file_for_name "$name" 2>/dev/null || true)"
+        is_community=0
+        if [[ -n "$file" ]] && theme_file_is_community "$file"; then
+          is_community=1
+        fi
+        printf -v row "  ${_cb}\033[38;2;%sm%-10s${_cr}      %s" "$accent_rgb" "$name" "$palette"
+        if (( is_community )); then
+          if [[ "$mode" == "light" ]]; then
+            community_light_rows+=("$row")
+          else
+            community_dark_rows+=("$row")
+          fi
         else
-          printf -v row "  ${_cb}\033[38;2;%sm%-10s${_cr}      %s" "$accent_rgb" "$name" "$palette"
-          dark_rows+=("$row")
+          if [[ "$mode" == "light" ]]; then
+            builtin_light_rows+=("$row")
+          else
+            builtin_dark_rows+=("$row")
+          fi
         fi
       done < <(list_theme_names)
       if (( count == 0 )); then
@@ -2369,21 +2456,39 @@ cmd_theme() {
       fi
 
       local idx
-      if (( ${#dark_rows[@]} > 0 )); then
-        printf "\n  ${_cl}DARK${_cr}\n\n"
-        for (( idx = 0; idx < ${#dark_rows[@]}; idx++ )); do
-          printf "%b\n" "${dark_rows[$idx]}"
-          if (( idx + 1 < ${#dark_rows[@]} )); then
+      if (( ${#builtin_dark_rows[@]} > 0 || ${#builtin_light_rows[@]} > 0 )); then
+        printf "\n  ${_cl}BUILT-IN${_cr}\n\n"
+        for (( idx = 0; idx < ${#builtin_dark_rows[@]}; idx++ )); do
+          printf "%b\n" "${builtin_dark_rows[$idx]}"
+          if (( idx + 1 < ${#builtin_dark_rows[@]} )); then
+            printf "\n"
+          fi
+        done
+        if (( ${#builtin_dark_rows[@]} > 0 && ${#builtin_light_rows[@]} > 0 )); then
+          printf "\n"
+        fi
+        for (( idx = 0; idx < ${#builtin_light_rows[@]}; idx++ )); do
+          printf "%b\n" "${builtin_light_rows[$idx]}"
+          if (( idx + 1 < ${#builtin_light_rows[@]} )); then
             printf "\n"
           fi
         done
       fi
 
-      if (( ${#light_rows[@]} > 0 )); then
-        printf "\n  ${_cl}LIGHT${_cr}\n\n"
-        for (( idx = 0; idx < ${#light_rows[@]}; idx++ )); do
-          printf "%b\n" "${light_rows[$idx]}"
-          if (( idx + 1 < ${#light_rows[@]} )); then
+      if (( ${#community_dark_rows[@]} > 0 || ${#community_light_rows[@]} > 0 )); then
+        printf "\n  ${_cl}COMMUNITY${_cr}\n\n"
+        for (( idx = 0; idx < ${#community_dark_rows[@]}; idx++ )); do
+          printf "%b\n" "${community_dark_rows[$idx]}"
+          if (( idx + 1 < ${#community_dark_rows[@]} )); then
+            printf "\n"
+          fi
+        done
+        if (( ${#community_dark_rows[@]} > 0 && ${#community_light_rows[@]} > 0 )); then
+          printf "\n"
+        fi
+        for (( idx = 0; idx < ${#community_light_rows[@]}; idx++ )); do
+          printf "%b\n" "${community_light_rows[$idx]}"
+          if (( idx + 1 < ${#community_light_rows[@]} )); then
             printf "\n"
           fi
         done

@@ -41,11 +41,11 @@ jobs:
           export HOME="$tmp_home"
           ./bin/boo theme list >/dev/null
 
-          for theme_file in themes/*.theme; do
+          while IFS= read -r theme_file; do
             theme="${theme_file##*/}"
             theme="${theme%.theme}"
             ./bin/boo theme "$theme" >/dev/null
-          done
+          done < <(find themes -type f -name '*.theme' | sort)
 
       - name: Install smoke test
         run: |
@@ -56,13 +56,12 @@ jobs:
           "$HOME/.local/bin/boo" theme list >/dev/null
 
           count=0
-          for theme_file in "$HOME/.config/boo/themes/"*.theme; do
-            [[ -e "$theme_file" ]] || continue
+          while IFS= read -r theme_file; do
             theme="${theme_file##*/}"
             theme="${theme%.theme}"
             "$HOME/.local/bin/boo" theme "$theme" >/dev/null
             count=$((count + 1))
-          done
+          done < <(find "$HOME/.config/boo/themes" -type f -name '*.theme' | sort)
 
           if [[ "$count" -eq 0 ]]; then
             echo "No installed themes found under $HOME/.config/boo/themes" >&2
@@ -77,8 +76,7 @@ jobs:
           bash scripts/install.sh >/dev/null
 
           count=0
-          for theme_file in "$HOME/.config/boo/themes/"*.theme; do
-            [[ -e "$theme_file" ]] || continue
+          while IFS= read -r theme_file; do
             theme="${theme_file##*/}"
             theme="${theme%.theme}"
 
@@ -89,7 +87,7 @@ jobs:
               exit 1
             }
             count=$((count + 1))
-          done
+          done < <(find "$HOME/.config/boo/themes" -type f -name '*.theme' | sort)
 
           if [[ "$count" -eq 0 ]]; then
             echo "No installed themes found under $HOME/.config/boo/themes" >&2

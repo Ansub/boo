@@ -117,8 +117,15 @@ boo theme select
 ```
 
 - Shows all themes in a searchable list
+- Ordered as: built-in dark, built-in light, community dark, community light
 - Live terminal-style preview panel on the right
 - Press `Enter` to apply, `Esc` to cancel
+
+Community themes are supported too:
+
+- Built-in community themes are auto-discovered from `themes/community/`
+- Installer copies them to `~/.config/boo/themes/community/`
+- You can add your own by dropping `*.theme` files into `~/.config/boo/themes/community/`
 
 ### Create your own theme
 
@@ -196,6 +203,16 @@ Expected result:
 - `lunar`: desaturated monochrome noir
 - `moss`: damp forest floor, muted earthy green
 - `rust`: oxidized metal, brutalist copper
+
+Community themes:
+
+- `aurora`: cool dark teal with cyan accents
+- `sage`: light botanical green paper mode
+- `dracula`: classic neon purple/green theme
+- `catppuccin-mocha`: popular pastel dark theme
+- `tokyonight`: electric blue storm palette
+- `gruvbox`: warm retro dark palette
+- `nord`: cool arctic blue-gray palette
 
 ## Advanced Notes
 
