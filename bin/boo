@@ -64,7 +64,7 @@ print_help() {
   printf "\n"
   printf "  ${cl}CONFIGURE${cr}\n"
   printf "\n"
-  _hcmd "theme"     "[<name> · list · create · delete]"  "apply themes & ANSI palette"
+  _hcmd "theme"     "[<name> · list · select · create · delete]"  "apply themes & ANSI palette"
   _hcmd "font"      "[<preset> · size]"  "font family & size"
   _hcmd "opacity"   "[glass · solid]"    "background opacity"
   _hcmd "splash"    "[<name> · none]"    "startup splash art"
@@ -371,7 +371,7 @@ write_splash_name() {
 }
 
 list_splash_names() {
-  printf '%s\n' apple boo saturn minimal
+  printf '%s\n' apple boo saturn eclipse halo monolith minimal
 }
 
 print_splash_preview() {
@@ -865,6 +865,193 @@ hex_luma() {
   g=$(hex_to_g "$hex")
   b=$(hex_to_b "$hex")
   printf '%d\n' $(( (r * 299 + g * 587 + b * 114) / 1000 ))
+}
+
+theme_mode_for_bg() {
+  local bg="$1"
+  local bg_l
+  bg_l=$(hex_luma "$bg")
+  if (( bg_l >= 150 )); then
+    printf 'light\n'
+  else
+    printf 'dark\n'
+  fi
+}
+
+theme_palette_strip_main() {
+  local hex rgb
+  local main_colors=(
+    "$_T_bg"
+    "$_T_fg"
+    "$_T_accent"
+    "$_T_cursor"
+    "$_T_selection_bg"
+  )
+
+  for hex in "${main_colors[@]}"; do
+    rgb="$(hex_to_rgb "$hex" 2>/dev/null || printf '128;128;128')"
+    printf '\033[38;2;%s;48;2;%sm███\033[0m' "$rgb" "$rgb"
+  done
+}
+
+theme_selector_rows() {
+  local active_theme="${1:-}"
+  local name accent_rgb mode marker colored_name description
+
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    if ! load_theme "$name"; then
+      continue
+    fi
+
+    accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '204;68;255')"
+    mode="$(theme_mode_for_bg "$_T_bg")"
+    marker=" "
+    [[ "$name" == "$active_theme" ]] && marker="*"
+    colored_name="$(printf '\033[38;2;%sm%s\033[0m' "$accent_rgb" "$name")"
+    description="${_T_description:-no description}"
+    description="${description//$'\t'/ }"
+
+    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$marker" "$mode" "$colored_name" "$description"
+  done < <(list_theme_names)
+}
+
+preview_fit_text() {
+  local width="$1"
+  local text="$2"
+
+  (( width < 1 )) && return
+  if (( ${#text} > width )); then
+    if (( width > 3 )); then
+      text="${text:0:$((width - 3))}..."
+    else
+      text="${text:0:$width}"
+    fi
+  fi
+  printf '%-*s' "$width" "$text"
+}
+
+print_preview_terminal_row() {
+  local inner="$1"
+  local bg_rgb="$2"
+  local fg_rgb="$3"
+  local text="$4"
+  local border_rgb="${5:-140;140;140}"
+  local row
+
+  row="$(preview_fit_text "$inner" "$text")"
+  printf '  \033[38;2;%sm│\033[48;2;%sm\033[38;2;%sm%s\033[0m\033[38;2;%sm│\033[0m\n' \
+    "$border_rgb" "$bg_rgb" "$fg_rgb" "$row" "$border_rgb"
+}
+
+print_theme_selector_preview() {
+  local theme="${1:-}"
+  local accent_rgb mode
+  local bg_rgb fg_rgb cursor_rgb cursor_text_rgb sel_bg_rgb sel_fg_rgb
+  local ok_rgb warn_rgb err_rgb info_rgb
+  local border_rgb muted_rgb
+  local preview_cols inner line border
+
+  if [[ -z "$theme" ]]; then
+    printf 'No theme selected.\n'
+    return 1
+  fi
+
+  if ! load_theme "$theme"; then
+    printf 'Invalid theme: %s\n' "$theme"
+    if [[ -n "${_THEME_LOAD_ERROR:-}" ]]; then
+      printf '%s\n' "$_THEME_LOAD_ERROR"
+    fi
+    return 1
+  fi
+
+  accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '204;68;255')"
+  bg_rgb="$(hex_to_rgb "$_T_bg" 2>/dev/null || printf '12;12;12')"
+  fg_rgb="$(hex_to_rgb "$_T_fg" 2>/dev/null || printf '220;220;220')"
+  cursor_rgb="$(hex_to_rgb "$_T_cursor" 2>/dev/null || printf '255;255;255')"
+  cursor_text_rgb="$(hex_to_rgb "$_T_cursor_text" 2>/dev/null || printf '0;0;0')"
+  sel_bg_rgb="$(hex_to_rgb "$_T_selection_bg" 2>/dev/null || printf '70;70;70')"
+  sel_fg_rgb="$(hex_to_rgb "$_T_selection_fg" 2>/dev/null || printf '235;235;235')"
+  ok_rgb="$(hex_to_rgb "$_T_pal_10" 2>/dev/null || printf '120;210;120')"
+  warn_rgb="$(hex_to_rgb "$_T_pal_11" 2>/dev/null || printf '230;190;90')"
+  err_rgb="$(hex_to_rgb "$_T_pal_1" 2>/dev/null || printf '230;95;95')"
+  info_rgb="$(hex_to_rgb "$_T_pal_12" 2>/dev/null || printf '110;170;240')"
+  border_rgb="$(hex_to_rgb "$_T_pal_8" 2>/dev/null || printf '120;120;120')"
+  muted_rgb="$(hex_to_rgb "$_T_pal_7" 2>/dev/null || printf '170;170;170')"
+  mode="$(theme_mode_for_bg "$_T_bg")"
+  preview_cols="${FZF_PREVIEW_COLUMNS:-80}"
+  (( preview_cols < 44 )) && preview_cols=44
+  inner=$(( preview_cols - 4 ))
+  border="$(printf '%*s' "$inner" '' | tr ' ' '─')"
+
+  printf '\n'
+  printf '  \033[1m\033[38;2;%sm%s\033[0m  (%s)\n' "$accent_rgb" "$theme" "$mode"
+  printf '  \033[38;5;244m%s\033[0m\n\n' "${_T_description:-no description}"
+
+  printf '  \033[38;2;%sm╭%s╮\033[0m\n' "$border_rgb" "$border"
+  line="$(preview_fit_text "$inner" '  o  o  o    boo terminal')"
+  printf '  \033[38;2;%sm│\033[48;2;%sm\033[38;2;%sm%s\033[0m\033[38;2;%sm│\033[0m\n' \
+    "$border_rgb" "$sel_bg_rgb" "$sel_fg_rgb" "$line" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$fg_rgb" " > boo theme $theme" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$ok_rgb" "   [ok] theme applied" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$fg_rgb" " > boo doctor" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$warn_rgb" "   7 ok  -  1 warn  -  0 fail" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$fg_rgb" " > echo ready" "$border_rgb"
+  print_preview_terminal_row "$inner" "$bg_rgb" "$info_rgb" "   ready" "$border_rgb"
+  line="$(preview_fit_text "$inner" '   typing...')"
+  printf '  \033[38;2;%sm│\033[48;2;%sm\033[38;2;%sm%s\033[48;2;%sm\033[38;2;%sm|\033[48;2;%sm\033[38;2;%sm\033[0m\033[38;2;%sm│\033[0m\n' \
+    "$border_rgb" "$bg_rgb" "$fg_rgb" "${line:0:$((inner - 1))}" "$cursor_rgb" "$cursor_text_rgb" "$bg_rgb" "$fg_rgb" "$border_rgb"
+  printf '  \033[38;2;%sm╰%s╯\033[0m\n' "$border_rgb" "$border"
+
+  printf '\n  \033[38;2;%smmain colors\033[0m  %s\n\n' "$muted_rgb" "$(theme_palette_strip_main)"
+}
+
+cmd_theme_select() {
+  local _t active chosen preview_cmd selected_line rows
+  _t="$(read_theme_file)"
+  _init_ui "$_t"
+
+  if ! command -v fzf >/dev/null 2>&1; then
+    printf "\n  ${_cv}fzf is required for interactive theme selection${_cr}\n"
+    printf "  ${_cd}install fzf, then run:${_cr} ${_ca}boo theme select${_cr}\n"
+    printf "  ${_cd}fallback:${_cr} ${_ca}boo theme list${_cr}\n\n"
+    return 1
+  fi
+
+  active="$(read_theme_file)"
+  rows="$(theme_selector_rows "$active")"
+  if [[ -z "$rows" ]]; then
+    printf "\n  ${_cd}No themes found in %s${_cr}\n\n" "$THEMES_DIR"
+    return 1
+  fi
+
+  printf -v preview_cmd '%q __theme_selector_preview {1}' "${BOO_BIN_DIR}/boo"
+
+  selected_line="$(
+    printf '%s\n' "$rows" | \
+      fzf --ansi \
+        --delimiter=$'\t' \
+        --with-nth=2,3,4,5 \
+        --height=90% \
+        --layout=reverse \
+        --border \
+        --prompt="theme > " \
+        --header=$'Enter: apply theme - Esc: cancel' \
+        --preview="$preview_cmd" \
+        --preview-window="right:62%:nowrap"
+  )" || return 0
+
+  chosen="${selected_line%%$'\t'*}"
+  [[ -n "$chosen" ]] || return 0
+
+  if [[ "$chosen" == "$active" ]]; then
+    printf "\n  ${_cd}%s is already active${_cr}\n\n" "$chosen"
+    return 0
+  fi
+
+  apply_theme "$chosen"
+  print_theme_applied_card "$chosen"
+  cmd_reload > /dev/null 2>&1 || true
 }
 
 theme_text_color_for_bg() {
@@ -2117,26 +2304,71 @@ cmd_theme() {
       cmd_theme_delete "$theme"
       return
       ;;
+    select|choose|pick)
+      cmd_theme_select
+      return
+      ;;
     list)
-      local _t name accent_rgb count
-      local description
+      local _t name accent_rgb count mode palette row
+      local -a dark_rows=()
+      local -a light_rows=()
+      local -a invalid_rows=()
       _t="$(read_theme_file)"
       _init_ui "$_t"
-      printf "\n  ${_cd}THEMES${_cr}\n\n"
+      printf "\n  ${_cd}THEMES${_cr}\n"
       count=0
       while IFS= read -r name; do
         [[ -n "$name" ]] || continue
         count=$((count + 1))
         if ! load_theme "$name"; then
-          printf "  ${_cb}%s${_cr}    ${_cv}[invalid theme file]${_cr}\n" "$name"
+          invalid_rows+=("  ${_cb}${name}${_cr}  ${_cv}[invalid theme file]${_cr}")
           continue
         fi
-        description="$_T_description"
         accent_rgb="$(hex_to_rgb "$_T_accent" 2>/dev/null || printf '204;68;255')"
-        printf "  ${_cb}\033[38;2;%sm%-10s${_cr}  ${_cv}%s${_cr}\n" "$accent_rgb" "$name" "$description"
+        palette="$(theme_palette_strip_main)"
+        mode="$(theme_mode_for_bg "$_T_bg")"
+        if [[ "$mode" == "light" ]]; then
+          printf -v row "  ${_cb}\033[38;2;%sm%-10s${_cr}      %s" "$accent_rgb" "$name" "$palette"
+          light_rows+=("$row")
+        else
+          printf -v row "  ${_cb}\033[38;2;%sm%-10s${_cr}      %s" "$accent_rgb" "$name" "$palette"
+          dark_rows+=("$row")
+        fi
       done < <(list_theme_names)
       if (( count == 0 )); then
-        printf "  ${_cd}No themes found in %s${_cr}\n" "$THEMES_DIR"
+        printf "\n  ${_cd}No themes found in %s${_cr}\n\n" "$THEMES_DIR"
+        return
+      fi
+
+      local idx
+      if (( ${#dark_rows[@]} > 0 )); then
+        printf "\n  ${_cl}DARK${_cr}\n\n"
+        for (( idx = 0; idx < ${#dark_rows[@]}; idx++ )); do
+          printf "%b\n" "${dark_rows[$idx]}"
+          if (( idx + 1 < ${#dark_rows[@]} )); then
+            printf "\n"
+          fi
+        done
+      fi
+
+      if (( ${#light_rows[@]} > 0 )); then
+        printf "\n  ${_cl}LIGHT${_cr}\n\n"
+        for (( idx = 0; idx < ${#light_rows[@]}; idx++ )); do
+          printf "%b\n" "${light_rows[$idx]}"
+          if (( idx + 1 < ${#light_rows[@]} )); then
+            printf "\n"
+          fi
+        done
+      fi
+
+      if (( ${#invalid_rows[@]} > 0 )); then
+        printf "\n  ${_cv}INVALID${_cr}\n\n"
+        for (( idx = 0; idx < ${#invalid_rows[@]}; idx++ )); do
+          printf "%b\n" "${invalid_rows[$idx]}"
+          if (( idx + 1 < ${#invalid_rows[@]} )); then
+            printf "\n"
+          fi
+        done
       fi
       printf "\n"
       ;;
@@ -2175,7 +2407,7 @@ cmd_theme() {
         exit 1
       else
         printf 'Invalid theme command: %s\n' "$action" >&2
-        printf 'Usage: boo theme [list|set <name>|<name>]\n' >&2
+        printf 'Usage: boo theme [list|select|set <name>|<name>]\n' >&2
         exit 1
       fi
       ;;
@@ -2451,7 +2683,7 @@ cmd_splash() {
       printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s (default)${_cr}\n\n" "$DEFAULT_SPLASH"
       print_shell_apply_hint
       ;;
-    apple|boo|saturn|minimal)
+    apple|boo|saturn|eclipse|halo|monolith|minimal)
       write_splash_name "$action"
       printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s${_cr}\n\n" "$action"
       print_shell_apply_hint
@@ -2824,6 +3056,10 @@ case "$subcommand" in
   preview)
     shift || true
     cmd_preview "$@"
+    ;;
+  __theme_selector_preview)
+    shift || true
+    print_theme_selector_preview "${1:-}"
     ;;
   splash)
     shift || true
