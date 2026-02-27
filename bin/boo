@@ -1054,7 +1054,7 @@ cmd_theme_select() {
       printf '%s\n' "$rows" | \
         fzf --ansi \
           --delimiter=$'\t' \
-          --with-nth=2,3,4,5 \
+          --with-nth=2,4 \
           --height=90% \
           --layout=reverse \
           --border \
