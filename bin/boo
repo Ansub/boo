@@ -895,7 +895,9 @@ theme_palette_strip_main() {
 
 theme_selector_rows() {
   local active_theme="${1:-}"
-  local name accent_rgb mode marker colored_name description
+  local name accent_rgb mode marker colored_name description row
+  local -a dark_rows=()
+  local -a light_rows=()
 
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
@@ -911,8 +913,25 @@ theme_selector_rows() {
     description="${_T_description:-no description}"
     description="${description//$'\t'/ }"
 
-    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$marker" "$mode" "$colored_name" "$description"
+    row="$(printf '%s\t%s\t%s\t%s\t%s' "$name" "$marker" "$mode" "$colored_name" "$description")"
+    if [[ "$mode" == "light" ]]; then
+      light_rows+=("$row")
+    else
+      dark_rows+=("$row")
+    fi
   done < <(list_theme_names)
+
+  if (( ${#dark_rows[@]} > 0 )); then
+    printf '__section__\t \t \t\033[1mDARK THEMES\033[0m\t\n'
+    printf '%s\n' "${dark_rows[@]}"
+  fi
+  if (( ${#light_rows[@]} > 0 )); then
+    if (( ${#dark_rows[@]} > 0 )); then
+      printf '__section__\t \t \t\033[2m────────────────\033[0m\t\n'
+    fi
+    printf '__section__\t \t \t\033[1mLIGHT THEMES\033[0m\t\n'
+    printf '%s\n' "${light_rows[@]}"
+  fi
 }
 
 preview_fit_text() {
@@ -954,6 +973,10 @@ print_theme_selector_preview() {
   if [[ -z "$theme" ]]; then
     printf 'No theme selected.\n'
     return 1
+  fi
+  if [[ "$theme" == "__section__" ]]; then
+    printf '\n  Select a theme row to preview it.\n\n'
+    return 0
   fi
 
   if ! load_theme "$theme"; then
@@ -1026,22 +1049,28 @@ cmd_theme_select() {
 
   printf -v preview_cmd '%q __theme_selector_preview {1}' "${BOO_BIN_DIR}/boo"
 
-  selected_line="$(
-    printf '%s\n' "$rows" | \
-      fzf --ansi \
-        --delimiter=$'\t' \
-        --with-nth=2,3,4,5 \
-        --height=90% \
-        --layout=reverse \
-        --border \
-        --prompt="theme > " \
-        --header=$'Enter: apply theme - Esc: cancel' \
-        --preview="$preview_cmd" \
-        --preview-window="right:62%:nowrap"
-  )" || return 0
+  while true; do
+    selected_line="$(
+      printf '%s\n' "$rows" | \
+        fzf --ansi \
+          --delimiter=$'\t' \
+          --with-nth=2,3,4,5 \
+          --height=90% \
+          --layout=reverse \
+          --border \
+          --prompt="theme > " \
+          --header=$'Enter: apply theme - Esc: cancel' \
+          --preview="$preview_cmd" \
+          --preview-window="right:62%:nowrap"
+    )" || return 0
 
-  chosen="${selected_line%%$'\t'*}"
-  [[ -n "$chosen" ]] || return 0
+    chosen="${selected_line%%$'\t'*}"
+    [[ -n "$chosen" ]] || continue
+    if [[ "$chosen" == "__section__" ]]; then
+      continue
+    fi
+    break
+  done
 
   if [[ "$chosen" == "$active" ]]; then
     printf "\n  ${_cd}%s is already active${_cr}\n\n" "$chosen"
