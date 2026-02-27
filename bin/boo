@@ -74,7 +74,6 @@ print_help() {
   printf "  ${cl}TOOLS${cr}\n"
   printf "\n"
   _hcmd "status"    ""                   "current config at a glance"
-  _hcmd "preview"   "[<theme> · all]"    "ANSI color swatches"
   _hcmd "reload"    "[--unsafe]"         "reload Ghostty config"
   _hcmd "upgrade"   ""                   "update boo to latest release"
   _hcmd "doctor"    "[fix]"              "diagnose & fix issues"
@@ -3052,10 +3051,6 @@ case "$subcommand" in
   reload)
     shift || true
     cmd_reload "${1:-}"
-    ;;
-  preview)
-    shift || true
-    cmd_preview "$@"
     ;;
   __theme_selector_preview)
     shift || true

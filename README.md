@@ -72,12 +72,6 @@ boo opacity glass
 boo prompt set native
 ```
 
-Optional preview:
-
-```bash
-boo preview all
-```
-
 ## If Something Looks Wrong
 
 ### `boo: command not found`
@@ -114,8 +108,6 @@ boo theme list
 boo theme select
 boo theme abyss
 boo crimson
-boo preview all
-boo preview abyss --plain
 ```
 
 Use the interactive selector for the easiest flow:
