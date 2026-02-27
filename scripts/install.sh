@@ -250,6 +250,12 @@ mkdir -p "$HOME/.config/boo/themes"
 cp "$REPO_DIR"/themes/*.theme "$HOME/.config/boo/themes/"
 log_ok "Installed themes: ~/.config/boo/themes/"
 
+if [[ -d "$REPO_DIR/themes/community" ]]; then
+  mkdir -p "$HOME/.config/boo/themes/community"
+  cp "$REPO_DIR"/themes/community/*.theme "$HOME/.config/boo/themes/community/" 2>/dev/null || true
+  log_ok "Installed community themes: ~/.config/boo/themes/community/"
+fi
+
 log_section "Defaults"
 if [[ ! -f "$HOME/.config/boo/theme.zsh" ]]; then
   cat > "$HOME/.config/boo/theme.zsh" <<'THEMEBLOCK'
