@@ -207,9 +207,7 @@ Expected result:
 Community themes:
 
 - `aurora`: cool dark teal with cyan accents
-- `sage`: light botanical green paper mode
 - `dracula`: classic neon purple/green theme
-- `catppuccin-mocha`: popular pastel dark theme
 - `tokyonight`: electric blue storm palette
 - `gruvbox`: warm retro dark palette
 - `nord`: cool arctic blue-gray palette

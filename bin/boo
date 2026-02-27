@@ -396,7 +396,7 @@ write_splash_name() {
 }
 
 list_splash_names() {
-  printf '%s\n' apple boo saturn eclipse halo monolith minimal
+  printf '%s\n' apple boo saturn eclipse halo monolith crescent minimal
 }
 
 print_splash_preview() {
@@ -2816,7 +2816,7 @@ cmd_splash() {
       printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s (default)${_cr}\n\n" "$DEFAULT_SPLASH"
       print_shell_apply_hint
       ;;
-    apple|boo|saturn|eclipse|halo|monolith|minimal)
+    apple|boo|saturn|eclipse|halo|monolith|crescent|minimal)
       write_splash_name "$action"
       printf "\n  ${_ca}✓${_cr}  ${_cv}splash  →  %s${_cr}\n\n" "$action"
       print_shell_apply_hint
