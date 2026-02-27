@@ -40,12 +40,11 @@ jobs:
           tmp_home="$(mktemp -d)"
           export HOME="$tmp_home"
           ./bin/boo theme list >/dev/null
-          ./bin/boo preview all --plain >/dev/null
 
           for theme_file in themes/*.theme; do
             theme="${theme_file##*/}"
             theme="${theme%.theme}"
-            ./bin/boo preview "$theme" --plain >/dev/null
+            ./bin/boo theme "$theme" >/dev/null
           done
 
       - name: Install smoke test
@@ -55,7 +54,6 @@ jobs:
           export HOME="$tmp_home"
           bash scripts/install.sh >/dev/null
           "$HOME/.local/bin/boo" theme list >/dev/null
-          "$HOME/.local/bin/boo" preview all --plain >/dev/null
 
           count=0
           for theme_file in "$HOME/.config/boo/themes/"*.theme; do
