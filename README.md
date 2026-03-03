@@ -1,6 +1,6 @@
 <img width="3840" height="1000" alt="Boo - Banner (1)" src="https://github.com/user-attachments/assets/4e8ae86b-c671-4aa5-9f34-9cabb59d1fe1" />
 
-<a href="https://withsupafast.com/?utm_source=boo&utm_medium=github&utm_campaign=readme"><img src="https://pbs.twimg.com/profile_images/1688604536779526144/1FRy6kZO_400x400.jpg" alt="Supafast" width="28" /></a>
+<a href="https://withsupafast.com/?utm_source=boo&utm_medium=github&utm_campaign=readme"><img src="https://pbs.twimg.com/profile_images/1688604536779526144/1FRy6kZO_400x400.jpg" alt="Supafast" width="28" align="middle" /></a> <a href="https://withsupafast.com/?utm_source=boo&utm_medium=github&utm_campaign=readme"><sub>Designed by Supafast</sub></a>
 
 # Boo
 
