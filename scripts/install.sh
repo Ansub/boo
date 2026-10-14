@@ -7,7 +7,8 @@ BOO_BACKUP_DIR="$HOME/.config/boo/backups"
 GHOSTTY_ORIGINAL_PRIMARY="$BOO_BACKUP_DIR/ghostty-config-primary.original"
 GHOSTTY_ORIGINAL_MAC="$BOO_BACKUP_DIR/ghostty-config-mac.original"
 BOO_GHOSTTY_MARKER="# Boo managed Ghostty config"
-PRIMARY_GHOSTTY="$HOME/.config/ghostty/config"
+PRIMARY_GHOSTTY="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
+UNAME_S="$(uname -s)"
 MAC_GHOSTTY="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 ZSHRC_FILE="$HOME/.zshrc"
 
@@ -125,7 +126,7 @@ trap on_install_error ERR
 log_header
 
 log_section "Preparing"
-mkdir -p "$HOME/.config/ghostty" "$HOME/.config/ohmyposh" "$HOME/.config/boo" "$HOME/.local/bin" "$BOO_BACKUP_DIR"
+mkdir -p "$(dirname "$PRIMARY_GHOSTTY")" "$HOME/.config/ohmyposh" "$HOME/.config/boo" "$HOME/.local/bin" "$BOO_BACKUP_DIR"
 log_ok "Ensured config directories under ~/.config and ~/.local/bin"
 
 log_section "Ghostty"
@@ -136,7 +137,9 @@ PREV_FONT_SIZE=""
 PREV_OPACITY=""
 PREV_PRIMARY_CONFIG_SNAPSHOT=""
 PREV_MAC_CONFIG_SNAPSHOT=""
-for _cfg in "$PRIMARY_GHOSTTY" "$MAC_GHOSTTY"; do
+GHOSTTY_TARGETS=("$PRIMARY_GHOSTTY")
+[[ "$UNAME_S" == "Darwin" && -f "$MAC_GHOSTTY" ]] && GHOSTTY_TARGETS+=("$MAC_GHOSTTY")
+for _cfg in "${GHOSTTY_TARGETS[@]}"; do
   [[ -f "$_cfg" ]] || continue
   if [[ -z "$PREV_FONT_FAMILY" ]]; then
     PREV_FONT_FAMILY="$(sed -nE 's/^[[:space:]]*font-family[[:space:]]*=[[:space:]]*(.+)/\1/p' "$_cfg" | head -n1)"
@@ -153,7 +156,7 @@ if [[ -f "$PRIMARY_GHOSTTY" ]]; then
   PREV_PRIMARY_CONFIG_SNAPSHOT="$(mktemp)"
   cp "$PRIMARY_GHOSTTY" "$PREV_PRIMARY_CONFIG_SNAPSHOT"
 fi
-if [[ -f "$MAC_GHOSTTY" ]]; then
+if [[ "$UNAME_S" == "Darwin" && -f "$MAC_GHOSTTY" ]]; then
   PREV_MAC_CONFIG_SNAPSHOT="$(mktemp)"
   cp "$MAC_GHOSTTY" "$PREV_MAC_CONFIG_SNAPSHOT"
 fi
@@ -168,11 +171,15 @@ if [[ -f "$PRIMARY_GHOSTTY" ]] && [[ ! -f "$GHOSTTY_ORIGINAL_PRIMARY" ]]; then
 fi
 
 backup_file "$PRIMARY_GHOSTTY"
-cp "$REPO_DIR/configs/ghostty/config" "$PRIMARY_GHOSTTY"
+if [[ "$UNAME_S" == "Linux" ]]; then
+  sed '/^macos-/d' "$REPO_DIR/configs/ghostty/config" > "$PRIMARY_GHOSTTY"
+else
+  cp "$REPO_DIR/configs/ghostty/config" "$PRIMARY_GHOSTTY"
+fi
 log_ok "Installed Ghostty config: $(short_path "$PRIMARY_GHOSTTY")"
 
 # Some macOS installs use this path.
-if [[ -f "$MAC_GHOSTTY" ]]; then
+if [[ "$UNAME_S" == "Darwin" && -f "$MAC_GHOSTTY" ]]; then
   mkdir -p "$(dirname "$MAC_GHOSTTY")"
   if [[ ! -f "$GHOSTTY_ORIGINAL_MAC" ]]; then
     if is_boo_ghostty_config "$MAC_GHOSTTY"; then
@@ -209,8 +216,7 @@ restore_ghostty_snapshot() {
   cp "$snapshot" "$target"
 }
 
-RESTORE_TARGETS=("$PRIMARY_GHOSTTY")
-[[ -f "$MAC_GHOSTTY" ]] && RESTORE_TARGETS+=("$MAC_GHOSTTY")
+RESTORE_TARGETS=("${GHOSTTY_TARGETS[@]}")
 for _cfg in "${RESTORE_TARGETS[@]}"; do
   if [[ -n "$PREV_FONT_FAMILY" ]]; then
     restore_ghostty_key "font-family" "$PREV_FONT_FAMILY" "$_cfg"
@@ -364,9 +370,13 @@ printf "\n%sInstall complete.%s\n\n" "$C_OK" "$C_RESET"
 printf "%sSummary:%s ok=%d skip=%d backup=%d info=%d error=%d\n\n" \
   "$C_TITLE" "$C_RESET" "$COUNT_OK" "$COUNT_SKIP" "$COUNT_BACKUP" "$COUNT_INFO" "$COUNT_ERR"
 printf "%sNext steps%s\n" "$C_TITLE" "$C_RESET"
-printf "  1) Run: source ~/.zshrc\n"
+printf "  1) From Zsh, run: source ~/.zshrc\n"
 printf "     (skip if you already ran it after install)\n"
-printf "  2) In Ghostty, press Cmd+Shift+, to reload config now\n"
+if [[ "$UNAME_S" == "Linux" ]]; then
+  printf "  2) In Ghostty, press Ctrl+Shift+, to reload config now\n"
+else
+  printf "  2) In Ghostty, press Cmd+Shift+, to reload config now\n"
+fi
 printf "     (or open a new Ghostty window)\n"
 printf "  3) Or run: boo reload --unsafe\n"
 printf "  4) Optional: run boo doctor\n"

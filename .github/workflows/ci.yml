@@ -13,7 +13,14 @@ permissions:
 jobs:
   checks:
     name: Syntax + Theme Checks
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Legacy smoke tests isolate HOME; do not inherit the runner's XDG path.
+      # platform-smoke.py separately exercises a non-default XDG_CONFIG_HOME.
+      XDG_CONFIG_HOME: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,3 +137,6 @@ jobs:
           after_bg="$(sed -nE 's/^[[:space:]]*background[[:space:]]*=[[:space:]]*(.+)/\1/p' "$HOME/.config/ghostty/config" | head -n1)"
 
           [[ "$after_bg" == "$before_bg" ]] || { echo "Config drifted when saved theme was missing: before=$before_bg after=$after_bg" >&2; exit 1; }
+
+      - name: Platform install, upgrade, reload, panel, and restore
+        run: python3 tests/platform-smoke.py
