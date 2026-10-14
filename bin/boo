@@ -20,7 +20,7 @@ BOO_BLOCK_START="# >>> Boo >>>"
 BOO_BLOCK_END="# <<< Boo <<<"
 LEGACY_BLOCK_START="# >>> ObsiGhost >>>"
 LEGACY_BLOCK_END="# <<< ObsiGhost <<<"
-GHOSTTY_CONFIG_PRIMARY="${HOME}/.config/ghostty/config"
+GHOSTTY_CONFIG_PRIMARY="${XDG_CONFIG_HOME:-${HOME}/.config}/ghostty/config"
 GHOSTTY_CONFIG_MAC="${HOME}/Library/Application Support/com.mitchellh.ghostty/config"
 GHOSTTY_ORIGINAL_BACKUP_PRIMARY="${HOME}/.config/boo/backups/ghostty-config-primary.original"
 GHOSTTY_ORIGINAL_BACKUP_MAC="${HOME}/.config/boo/backups/ghostty-config-mac.original"
@@ -33,6 +33,11 @@ DEFAULT_THEME="abyss"
 DEFAULT_PROMPT_BACKEND="native"
 DEFAULT_UPGRADE_URL="https://boo.ansub.co/install.sh"
 UNAME_S="$(uname -s)"
+RELOAD_SHORTCUT="Cmd+Shift+,"
+if [[ "$UNAME_S" == "Linux" ]]; then
+  DEFAULT_SPLASH="boo"
+  RELOAD_SHORTCUT="Ctrl+Shift+,"
+fi
 UNSAFE_RELOAD_REASON=""
 BOO_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FALLBACK_THEMES_DIR="$(cd "${BOO_BIN_DIR}/.." >/dev/null 2>&1 && pwd)/themes"
@@ -508,7 +513,7 @@ print_theme_applied_card() {
   _brow $(( 2 + 1 + 2 + 13 )) "  ${ca}✓${cr}  ${cv}theme applied${cr}"
   _brow $(( 2 + 1 + 2 + 22 )) "  ${ca}✓${cr}  ${cv}prompt accents updated${cr}"
   _brow $shell_vis "$shell_row"
-  _brow $(( 2 + 1 + 2 + 19 + 2 + 1 + 2 + 11 )) "  ${cd}↺${cr}  ${cb}${ca}boo reload --unsafe${cr}  ${cd}·  Cmd+Shift+,${cr}"
+  _brow $(( 2 + 1 + 2 + 19 + 2 + 1 + 2 + ${#RELOAD_SHORTCUT} )) "  ${cd}↺${cr}  ${cb}${ca}boo reload --unsafe${cr}  ${cd}·  ${RELOAD_SHORTCUT}${cr}"
   _bempty
   printf "  ${ca}╰${bar}╯${cr}\n"
   printf "\n"
@@ -766,7 +771,7 @@ doctor_run_checks() {
     doctor_line warn "oh-my-posh missing while prompt backend is omp" "Install oh-my-posh or run: boo prompt set native"
   fi
 
-  if [[ -s "$GHOSTTY_CONFIG_PRIMARY" && -s "$GHOSTTY_CONFIG_MAC" ]]; then
+  if [[ "$UNAME_S" == "Darwin" && -s "$GHOSTTY_CONFIG_PRIMARY" && -s "$GHOSTTY_CONFIG_MAC" ]]; then
     local_hash="$(doctor_file_hash "$GHOSTTY_CONFIG_PRIMARY")"
     mac_hash="$(doctor_file_hash "$GHOSTTY_CONFIG_MAC")"
     if [[ "$local_hash" != "$mac_hash" ]]; then
@@ -2011,6 +2016,12 @@ cmd_reload() {
     return 0
   fi
 
+  if [[ "$UNAME_S" == "Linux" ]]; then
+    printf '\n  Config saved. Press %s in Ghostty to apply.\n' "$RELOAD_SHORTCUT"
+    printf '  If you changed the binding, use Ghostty’s Reload Configuration menu action.\n\n'
+    return 0
+  fi
+
   if (( unsafe == 1 )); then
     if unsafe_reload_via_keystroke; then
       return 0
@@ -2978,8 +2989,12 @@ cmd_uninstall() {
   done
 
   # Reset Ghostty config to original/default before removing Boo state files.
-  local ghostty_paths=("$GHOSTTY_CONFIG_PRIMARY" "$GHOSTTY_CONFIG_MAC")
-  local ghostty_original_backups=("$GHOSTTY_ORIGINAL_BACKUP_PRIMARY" "$GHOSTTY_ORIGINAL_BACKUP_MAC")
+  local ghostty_paths=("$GHOSTTY_CONFIG_PRIMARY")
+  local ghostty_original_backups=("$GHOSTTY_ORIGINAL_BACKUP_PRIMARY")
+  if [[ "$UNAME_S" == "Darwin" ]]; then
+    ghostty_paths+=("$GHOSTTY_CONFIG_MAC")
+    ghostty_original_backups+=("$GHOSTTY_ORIGINAL_BACKUP_MAC")
+  fi
   local idx gpath original_backup
   for idx in "${!ghostty_paths[@]}"; do
     gpath="${ghostty_paths[$idx]}"

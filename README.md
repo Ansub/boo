@@ -37,9 +37,9 @@ If theme or opacity does not change right away, jump to [If Something Looks Wron
 
 ## Prerequisites
 
-- macOS (tested)
+- macOS or Linux
 - [Ghostty](https://ghostty.org/)
-- `zsh`
+- `bash`, `zsh`, `curl`, and `tar`
 - [oh-my-posh](https://ohmyposh.dev/) (optional, only needed for `boo prompt set omp`)
 
 ## Install
@@ -48,6 +48,24 @@ If theme or opacity does not change right away, jump to [If Something Looks Wron
 curl -fsSL https://boo.ansub.co/install.sh | bash
 source ~/.zshrc
 ```
+
+### Linux setup
+
+Install [Ghostty for your distribution](https://ghostty.org/docs/install/binary#linux)
+and Zsh first, then use the same install command above. Run `source ~/.zshrc`
+from Zsh, not Bash. If your default shell is Bash, run `zsh` first; to make Zsh
+permanent, use `chsh -s "$(command -v zsh)"` and log in again.
+
+- Ghostty config is written to `${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config`.
+- Boo's own files remain in `~/.config/boo`, with the CLI in `~/.local/bin`.
+- The startup panel shows Linux CPU, memory, model, and load information.
+- Reload with `Ctrl+Shift+,` (default binding), or Ghostty's Reload Configuration
+  menu action if you customized your keys. On Linux, `boo reload --unsafe` shows
+  these instructions without injecting keystrokes.
+- Transparency and blur depend on your desktop compositor. See
+  [Ghostty's blur support](https://ghostty.org/docs/config/reference#background-blur).
+- Install a Nerd Font for prompt icons, or keep your existing font. The installer
+  preserves your font, font size, and opacity settings.
 
 Safety notes:
 
@@ -90,8 +108,8 @@ boo doctor
 
 ### Theme or opacity did not apply
 
-- Press `Cmd+Shift+,` in Ghostty.
-- Or run `boo reload --unsafe`.
+- Press `Cmd+Shift+,` on macOS or `Ctrl+Shift+,` on Linux in Ghostty.
+- On macOS, you can also run `boo reload --unsafe`.
 - If opacity still does not change on macOS, fully restart Ghostty.
 
 ### `boo doctor` reports issues
@@ -219,9 +237,9 @@ Community themes:
 ## Advanced Notes
 
 - `boo reload`: safe guidance only (no key injection, no window/session changes)
-- `boo reload --unsafe`: tries to trigger Ghostty `reload_config` via comma-based keybind (`Cmd+Shift+,` or `Cmd+,`)
+- `boo reload --unsafe`: on macOS, tries to trigger Ghostty `reload_config` via comma-based keybind (`Cmd+Shift+,` or `Cmd+,`)
 - Theme changes auto-run safe reload
-- Opacity changes auto-run unsafe reload
+- Opacity changes auto-run unsafe reload (manual reload guidance on Linux)
 - On macOS, `background-opacity` can still require a full Ghostty restart
 
 ## Roadmap

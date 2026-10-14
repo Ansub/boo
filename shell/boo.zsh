@@ -7,6 +7,7 @@ BOO_SPLASH_FILE="$HOME/.config/boo/splash.zsh"
 BOO_CUSTOM_SPLASH_FILE="$HOME/.config/boo/custom-splash.txt"
 BOO_ART_DIR="$HOME/.config/boo/art"
 BOO_DEFAULT_SPLASH="apple"
+[[ "$OSTYPE" == linux* ]] && BOO_DEFAULT_SPLASH="boo"
 
 # Optional mode override persisted by `boo mode`.
 if [[ -f "$HOME/.config/boo/mode.zsh" ]]; then
@@ -314,11 +315,19 @@ show_boo_startup_panel() {
 
   now="$(date '+%a %b %d, %I:%M %p')"
   shell_name="${SHELL##*/}"
-  os_name="$(sw_vers -productName 2>/dev/null || uname -s)"
-  os_ver="$(sw_vers -productVersion 2>/dev/null || uname -r)"
-  cpu_cores="$(sysctl -n hw.ncpu 2>/dev/null || echo '-')"
-  cpu_arch="$(uname -m 2>/dev/null || echo '-')"
-  total_bytes="$(sysctl -n hw.memsize 2>/dev/null)"
+  if [[ "$OSTYPE" == linux* ]]; then
+    os_name="Linux"
+    os_ver="$(uname -r)"
+    cpu_cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '-')"
+    cpu_arch="$(uname -m)"
+    total_bytes="$(awk '/^MemTotal:/ {printf "%.0f", $2 * 1024}' /proc/meminfo 2>/dev/null)"
+  else
+    os_name="$(sw_vers -productName 2>/dev/null || uname -s)"
+    os_ver="$(sw_vers -productVersion 2>/dev/null || uname -r)"
+    cpu_cores="$(sysctl -n hw.ncpu 2>/dev/null || echo '-')"
+    cpu_arch="$(uname -m 2>/dev/null || echo '-')"
+    total_bytes="$(sysctl -n hw.memsize 2>/dev/null)"
+  fi
   if [[ -n "$total_bytes" ]]; then
     mem_total="$(awk "BEGIN {printf \"%.1f\", ${total_bytes}/1073741824}")"
     mem_public="${mem_total} GB"
@@ -337,21 +346,31 @@ show_boo_startup_panel() {
   if [[ "$show_private" == "1" ]]; then
     host_short="$(hostname -s 2>/dev/null || hostname)"
     kernel="$(uname -r 2>/dev/null)"
-    model="$(sysctl -n hw.model 2>/dev/null || echo '-')"
-    load_avg="$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{printf "%s %s %s", $1, $2, $3}')"
-    [[ -z "${load_avg}" ]] && load_avg="-"
-
-    vm_out="$(vm_stat 2>/dev/null)"
-    page_size="$(printf '%s\n' "$vm_out" | awk '/page size of/ {gsub("\\.","",$8); print $8}')"
-    active="$(printf '%s\n' "$vm_out" | awk '/Pages active/ {gsub("\\.","",$3); print $3}')"
-    wired="$(printf '%s\n' "$vm_out" | awk '/Pages wired down/ {gsub("\\.","",$4); print $4}')"
-    compressed="$(printf '%s\n' "$vm_out" | awk '/Pages occupied by compressor/ {gsub("\\.","",$5); print $5}')"
-
-    if [[ -n "$page_size" && -n "$active" && -n "$wired" && -n "$compressed" ]]; then
-      used_bytes=$(( (active + wired + compressed) * page_size ))
-      mem_used="$(awk "BEGIN {printf \"%.1f\", ${used_bytes}/1073741824}")"
+    if [[ "$OSTYPE" == linux* ]]; then
+      model="$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || uname -m)"
+      load_avg="$(awk '{printf "%s %s %s", $1, $2, $3}' /proc/loadavg 2>/dev/null)"
+      mem_used="$(awk '
+        /^MemTotal:/ {total = $2}
+        /^MemAvailable:/ {available = $2; found = 1}
+        END {if (found) printf "%.1f", (total - available) / 1048576; else printf "-"}
+      ' /proc/meminfo 2>/dev/null)"
     else
-      mem_used="-"
+      model="$(sysctl -n hw.model 2>/dev/null || echo '-')"
+      load_avg="$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{printf "%s %s %s", $1, $2, $3}')"
+      [[ -z "${load_avg}" ]] && load_avg="-"
+
+      vm_out="$(vm_stat 2>/dev/null)"
+      page_size="$(printf '%s\n' "$vm_out" | awk '/page size of/ {gsub("\\.","",$8); print $8}')"
+      active="$(printf '%s\n' "$vm_out" | awk '/Pages active/ {gsub("\\.","",$3); print $3}')"
+      wired="$(printf '%s\n' "$vm_out" | awk '/Pages wired down/ {gsub("\\.","",$4); print $4}')"
+      compressed="$(printf '%s\n' "$vm_out" | awk '/Pages occupied by compressor/ {gsub("\\.","",$5); print $5}')"
+
+      if [[ -n "$page_size" && -n "$active" && -n "$wired" && -n "$compressed" ]]; then
+        used_bytes=$(( (active + wired + compressed) * page_size ))
+        mem_used="$(awk "BEGIN {printf \"%.1f\", ${used_bytes}/1073741824}")"
+      else
+        mem_used="-"
+      fi
     fi
 
     info=(
