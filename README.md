@@ -72,6 +72,32 @@ Safety notes:
 - Installer creates timestamped backups before replacing files.
 - `boo uninstall` can restore your previous Ghostty config when a backup exists.
 
+## Install with Nix
+
+```bash
+nix profile install github:Ansub/boo
+boo doctor fix
+```
+
+Or as a flake input in your config:
+
+```nix
+# flake.nix
+inputs.boo.url = "github:Ansub/boo";
+```
+
+```nix
+# Add boo to packages
+environment.systemPackages = [ inputs.boo.packages.${system}.default ];
+
+# Source shell integration (home-manager)
+programs.zsh.initExtra = ''
+  source "${inputs.boo.packages.${system}.default}/shell/boo.zsh"
+'';
+```
+
+Run `boo doctor fix` once after install to bootstrap `~/.config/boo/`.
+
 ## Verify It Worked
 
 ```bash
